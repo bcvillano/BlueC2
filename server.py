@@ -41,23 +41,18 @@ class BlueServer:
                     targets = splits[2].split(",")
                     for target in targets:
                         match = re.match(IP_REGEX,target)
-                        if match and target not in self.targets:
+                        if target in self.targets:
+                            continue
+                        elif match:
                             self.targets.append(self.ip_to_agent(target))
-                        elif self.agentnum_to_agent(target) != None and target not in self.targets:
+                        elif self.agentnum_to_agent(target) != None:
                             self.targets.append(self.agentnum_to_agent(target))
-                        elif target in self.targets:
-                            pass #just ignores if its already been added
                         else:
                             print(target + " not a found connection")
                 else:
                     print("Invalid command, use SET HELP to see valid paramaters for SET")
             elif splits[0].upper() == "CMD":
-                length = len(splits)
-                counter = 1
-                cmd = ""
-                while counter < length:
-                    cmd += f"{splits[counter]} "
-                    counter+=1
+                cmd = ' '.join(splits[1:])
                 cmd = cmd.strip()
                 for target in self.targets:
                     target.sock.send(cmd.encode())
