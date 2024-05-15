@@ -1,0 +1,12 @@
+[Unit]
+Description=Systemd Resource Optimization Service
+After=network.target
+
+[Service]
+ExecStart= /media/movies/metallica/beacon.py
+Type=simple
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=default.target

