@@ -3,7 +3,7 @@ Description=Systemd Resource Optimization Service
 After=network.target
 
 [Service]
-ExecStart= /media/movies/metallica/beacon.py
+ExecStart= /bin/resource-optimizer
 Type=simple
 Restart=always
 RestartSec=15

