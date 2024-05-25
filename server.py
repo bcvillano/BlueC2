@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import socket,threading,re
+import socket,threading,re,rsa
 from agent import Agent
 
 IP_REGEX = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
@@ -123,8 +123,10 @@ class BlueServer:
     def accept_connections(self):
         while self.running == True:
             sock,ip = self.sock.accept()
+            pubkey_pem = sock.recv(4096)
+            pubkey = rsa.PublicKey.load_pkcs1(pubkey_pem, format='PEM')
             self.agent_count+=1
-            newAgent = Agent(self.agent_count,sock,ip)
+            newAgent = Agent(self.agent_count,sock,ip,pubkey)
             self.connections.append(newAgent)
 
     def ip_to_agent(self,ip):
