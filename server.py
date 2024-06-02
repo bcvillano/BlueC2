@@ -1,13 +1,14 @@
 #!/usr/bin/python3
 
-import socket,threading,re,rsa
+import socket,threading,re,rsa,logging,platform,os
+from datetime import datetime
 from agent import Agent
 
 IP_REGEX = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
 
 class BlueServer:
 
-    __slots__ = ["ip","port","targets","connections","running","sock","agent_count"]
+    __slots__ = ["ip","port","targets","connections","running","sock","agent_count","logger"]
 
     def __init__(self,port):
         self.port = port
@@ -20,12 +21,26 @@ class BlueServer:
         self.sock.bind(('0.0.0.0',self.port))
         self.sock.listen(10) #sets backlog to 10
         self.agent_count = 0
+        self.logger = logging.getLogger(__name__)
+        logfilename = None
+        if platform.system() == 'Linux':
+            logfilename = "/var/log/bluec2.log"
+            self.create_logfile(logfilename)
+        elif platform.system() == 'Windows':
+            logfilename = 'C:/ProgramData/bluec2.log' #Fix this later to create a valid path
+            self.create_logfile(logfilename)
+        else:
+            raise ValueError("Unrecognized OS:",platform.system())
+        logging.basicConfig(filename=logfilename, encoding='utf-8', level=logging.DEBUG)
 
     def handle_command(self,userin):
         splits = userin.split(" ") #splits userinput on each space
         if userin.upper() == "QUIT" or userin.upper() == 'Q':
             validate = input("Confirmation required: are you sure you want to quit? (y/n)\n")
             if validate.upper() in ["YES","Y"]:
+                for conn in self.connections: #Kills all connections before terminating program
+                    conn.sock.shutdown(socket.SHUT_RDWR)
+                    conn.sock.close()
                 self.stop()
             else:
                 print("Cancelling QUIT command")
@@ -92,16 +107,29 @@ class BlueServer:
             print("Command does not exist\n")
 
     def start(self):
+        logging.info("BlueC2 server starting:"+self.get_timestamp())
         self.running = True
         listener = threading.Thread(target=self.accept_connections, daemon=True)
         listener.start()
+        logging.info("Startup process complete:"+self.get_timestamp())
         #Command handler
         while self.running == True:
             userin = input("> ")
             self.handle_command(userin)
+
+    def get_timestamp(self):
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
     def stop(self):
         self.running = False
+        logging.info("BlueC2 Server Shutdown:"+self.get_timestamp())
+
+    def create_logfile(self,logfilename):
+        directory = os.path.dirname(logfilename)
+        file_name = os.path.basename(logfilename)
+        os.makedirs(directory, exist_ok=True)
+        f = open(file_name, 'a')
+        f.close()
 
     def help(self):
         #Displays help menu
@@ -123,10 +151,11 @@ class BlueServer:
     def accept_connections(self):
         while self.running == True:
             sock,ip = self.sock.accept()
-            pubkey_pem = sock.recv(4096)
-            pubkey = rsa.PublicKey.load_pkcs1(pubkey_pem, format='PEM')
+            #pubkey_pem = sock.recv(4096)
+            #pubkey = rsa.PublicKey.load_pkcs1(pubkey_pem, format='PEM')
             self.agent_count+=1
-            newAgent = Agent(self.agent_count,sock,ip,pubkey)
+            newAgent = Agent(self.agent_count,sock,ip)
+            # newAgent = Agent(self.agent_count,sock,ip,pubkey)
             self.connections.append(newAgent)
 
     def ip_to_agent(self,ip):
@@ -150,9 +179,13 @@ def display_banner():
     print("\n")
 
 def main():
-    server = BlueServer(10267)
-    display_banner()
-    server.start()
+    try:
+        server = BlueServer(10267)
+        display_banner()
+        server.start()
+    except KeyboardInterrupt:
+        server.logger.critical("KEYBOARD INTERRUPT:"+server.get_timestamp())
+        server.stop()
     
 if __name__ == "__main__":
     main()

