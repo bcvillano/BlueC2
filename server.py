@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import socket,threading,re,rsa,logging,platform,os
+import socket,threading,re,logging,platform,os
 from datetime import datetime
 from agent import Agent
 
@@ -151,12 +151,10 @@ class BlueServer:
     def accept_connections(self):
         while self.running == True:
             sock,ip = self.sock.accept()
-            #pubkey_pem = sock.recv(4096)
-            #pubkey = rsa.PublicKey.load_pkcs1(pubkey_pem, format='PEM')
             self.agent_count+=1
             newAgent = Agent(self.agent_count,sock,ip)
-            # newAgent = Agent(self.agent_count,sock,ip,pubkey)
             self.connections.append(newAgent)
+            logging.info("Accepted connection from "+newAgent.ip[0]+":"+self.get_timestamp())
 
     def ip_to_agent(self,ip):
         for agent in self.connections:

