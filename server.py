@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import socket,threading,re,logging,platform,os
+import socket,threading,re,logging,platform,os,time
 from datetime import datetime
 from agent import Agent
 
@@ -111,6 +111,8 @@ class BlueServer:
         self.running = True
         listener = threading.Thread(target=self.accept_connections, daemon=True)
         listener.start()
+        heartbeat = threading.Thread(target=self.heartbeat_all_conns,daemon=True)
+        heartbeat.start()
         logging.info("Startup process complete:"+self.get_timestamp())
         #Command handler
         while self.running == True:
@@ -167,6 +169,25 @@ class BlueServer:
             if int(agent.number) == int(agentnum):
                 return agent
         return None #null return if no agents match
+    
+    def send_heartbeat(self,agent):
+        try:
+            agent.sock.settimeout(5.0)
+            agent.sock.send("heartbeat".encode()) 
+            reply = agent.sock.recv(10).decode()
+            if reply != "ACTIVE":
+                self.connections.remove(agent)
+        except socket.timeout:
+            print("Agent " + agent.number + " timed out, removing from connections")
+            self.connections.remove(agent)
+        finally:
+            agent.sock.settimeout(30.0)
+    
+    def heartbeat_all_conns(self):
+        while self.running == True:
+            for conn in self.connections:
+                self.send_heartbeat(conn)
+                time.sleep(60) #pauses for one minute
 
 def display_banner():
     try:
