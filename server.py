@@ -170,7 +170,7 @@ class BlueServer:
             #sends inital messages to inform client if encryption is being used
             if self.encryption == True:
                 newAgent.sock.send("encryption on".encode())
-                newAgent.sock.send(self.key) #CONTINUE HERE!!!!
+                newAgent.sock.send(self.key)
             else:
                 newAgent.sock.send("encryption off".encode())
 
@@ -186,31 +186,31 @@ class BlueServer:
                 return agent
         return None #null return if no agents match
     
-    def send_heartbeat(self,agent):
-        try:
-            agent.sock.settimeout(5.0)
-            reply = ""
-            if self.encryption == True:
-                agent.sock.send(self.encrypt("heartbeat".encode())) 
-                reply = self.decrypt(agent.sock.recv(10)).decode()
-            else:
-                agent.sock.send("heartbeat".encode()) 
-                reply = agent.sock.recv(10).decode()
-            if reply != "ACTIVE":
-                logging.warning("Lost connection to " + agent.ip[0]+":"+self.get_timestamp())
-                self.connections.remove(agent)
-        except socket.timeout:
-            logging.warning("Lost connection to " + agent.ip[0]+"(timeout):"+self.get_timestamp())
-            print("Agent " + agent.number + " timed out, removing from connections")
-            self.connections.remove(agent)
-        finally:
-            agent.sock.settimeout(30.0)
+    # def send_heartbeat(self,agent):
+    #     try:
+    #         agent.sock.settimeout(5.0)
+    #         reply = ""
+    #         if self.encryption == True:
+    #             agent.sock.send(self.encrypt("heartbeat".encode())) 
+    #             reply = self.decrypt(agent.sock.recv(10)).decode()
+    #         else:
+    #             agent.sock.send("heartbeat".encode()) 
+    #             reply = agent.sock.recv(10).decode()
+    #         if reply != "ACTIVE":
+    #             logging.warning("Lost connection to " + agent.ip[0]+":"+self.get_timestamp())
+    #             self.connections.remove(agent)
+    #     except socket.timeout:
+    #         logging.warning("Lost connection to " + agent.ip[0]+"(timeout):"+self.get_timestamp())
+    #         print("Agent " + agent.number + " timed out, removing from connections")
+    #         self.connections.remove(agent)
+    #     finally:
+    #         agent.sock.settimeout(30.0)
     
-    def heartbeat_all_conns(self):
-        while self.running == True:
-            for conn in self.connections:
-                self.send_heartbeat(conn)
-                time.sleep(60) #pauses for one minute
+    # def heartbeat_all_conns(self):
+    #     while self.running == True:
+    #         for conn in self.connections:
+    #             self.send_heartbeat(conn)
+    #             time.sleep(60) #pauses for one minute
     
     def encrypt(self,data):
         return self.fern.encrypt(data)
