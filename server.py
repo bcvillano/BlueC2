@@ -3,13 +3,13 @@
 import socket,threading,re,logging,platform,os
 from datetime import datetime
 from agent import Agent
-from cryptography.fernet import Fernet
+from Crypto.Util.strxor import strxor
 
 IP_REGEX = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
 
 class BlueServer:
 
-    __slots__ = ["ip","port","targets","connections","running","sock","agent_count","logger","key","fern","encryption"]
+    __slots__ = ["ip","port","targets","connections","running","sock","agent_count","logger","key","encryption"]
 
     def __init__(self,port):
         self.port = port
@@ -23,9 +23,7 @@ class BlueServer:
         self.sock.bind(('0.0.0.0',self.port))
         self.sock.listen(10) #sets backlog to 10
         self.agent_count = 0
-        if self.encryption == True:
-            self.key = Fernet.generate_key()
-            self.fern = Fernet(self.key)
+        self.key = "chandifortnite"
         self.logger = logging.getLogger(__name__)
         logfilename = None
         if platform.system() == 'Linux':
@@ -186,7 +184,6 @@ class BlueServer:
             #sends inital messages to inform client if encryption is being used
             if self.encryption == True:
                 newAgent.sock.send("encryption on".encode())
-                newAgent.sock.send(self.key)
             else:
                 newAgent.sock.send("encryption off".encode())
 
@@ -229,10 +226,12 @@ class BlueServer:
     #             time.sleep(60) #pauses for one minute
     
     def encrypt(self,data):
-        return self.fern.encrypt(data)
+        key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)] #repeats key to match length of data
+        return strxor(data,key.encode())
 
     def decrypt(self,data):
-        return self.fern.decrypt(data)
+        key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)] # same as encrypt because of xor
+        return strxor(data,key.encode())
 
 def display_banner():
     try:
