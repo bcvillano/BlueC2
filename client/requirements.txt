@@ -2,4 +2,4 @@ socket
 subprocess
 time
 string
-cryptography
+pycryptodome
