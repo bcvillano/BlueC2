@@ -35,6 +35,8 @@ class Beacon:
          cmd = command.split(" ")
          try:
             ps = subprocess.run(cmd, shell=True, capture_output=True,check=True)
+            if ps.returncode != 0:
+               raise subprocess.CalledProcessError(ps.returncode,ps.args,ps.stdout)
          except subprocess.CalledProcessError as e:
             if self.debugging == True:
                print("Error:",e)
