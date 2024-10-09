@@ -44,6 +44,7 @@ class Beacon:
             else:
                self.sock.send(e.output)
                self.sock.send("END".encode())
+            return 1 #Exit the function
          if self.debugging == True:
             print("Sending:" ,ps.stdout)
          if ps.stdout != None and ps.stdout != b'':
