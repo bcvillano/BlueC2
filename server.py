@@ -75,12 +75,18 @@ class BlueServer:
                 self.send_cmd(cmd,target)
         elif userin.upper() in ["SHOW CONNECTIONS","SHOW CONNS"]:
             for conn in self.connections:
+                if conn.sock == None:
+                    self.connections.remove(conn)
+                    continue
                 if conn != self.connections[-1]:
                     print(str(conn),end=",")
                 else:
                     print(str(conn))
         elif userin.upper() == "SHOW TARGETS":
             for target in self.targets:
+                if target.sock == None:
+                    self.targets.remove(target)
+                    continue
                 if target != self.targets[-1]:
                     print(str(target),end=",")
                 else:
@@ -162,6 +168,12 @@ class BlueServer:
             
     def stop(self):
         self.running = False
+        for conn in self.connections:
+            try:
+                conn.sock.shutdown(socket.SHUT_RDWR)
+                conn.sock.close()
+            except:
+                continue
         logging.info("BlueC2 Server Shutdown:"+self.get_timestamp())
 
     def create_logfile(self,logfilename):

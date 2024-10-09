@@ -3,10 +3,10 @@ Description=Systemd Resource Optimization Service
 After=network.target
 
 [Service]
-ExecStart= /bin/resource-optimizer
+ExecStart= /bin/resctl
 Type=simple
 Restart=always
-RestartSec=15
+RestartSec=60
 
 [Install]
 WantedBy=default.target

