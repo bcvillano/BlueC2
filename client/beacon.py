@@ -41,10 +41,10 @@ class Beacon:
             if self.debugging == True:
                print("Error:",e)
             if self.encryption == True:
-               self.sock.send(self.encrypt(e.output))
+               self.sock.send(self.encrypt(str(e).encode()))
                self.sock.send(self.encrypt("END".encode()))
             else:
-               self.sock.send(e.output)
+               self.sock.send(str(e).encode())
                self.sock.send("END".encode())
             return 1 #Exit the function
          if self.debugging == True:
@@ -79,8 +79,10 @@ class Beacon:
                         print(error_msg)
                      if self.encryption == True:
                         self.sock.send(self.encrypt(error_msg.encode()))
+                        self.sock.send(self.encrypt("END".encode()))
                      else:
                         self.sock.send(error_msg.encode())
+                        self.sock.send("END".encode())
 
    def start(self):
       self.running = True
