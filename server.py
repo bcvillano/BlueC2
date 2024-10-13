@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import socket,threading,re,logging,platform,os
+import socket,threading,re,logging,platform,os,time
 from datetime import datetime
 from agent import Agent
 from Crypto.Util.strxor import strxor
@@ -52,7 +52,7 @@ class BlueServer:
         elif splits[0].upper() == "SET":
             #Handles setting information
             if splits[1].upper() == "HELP":
-                self.set_help()
+                self.help("set")
             elif splits[1].upper() == "TARGETS":
                 self.targets = []
                 targets = splits[2].split(",")
@@ -107,6 +107,12 @@ class BlueServer:
                     self.send_cmd(cmd,agent)
             else:
                 print("Invalid Agent")
+        elif splits[0].upper() + " " + splits[1].upper() == "APPLY TEMPLATE":
+            if splits[2].upper() == "IP":
+                self.apply_template("ip")
+        elif splits[0].upper() + " " + splits[1].upper() == "SHOW TAGS":
+            agent = self.agentnum_to_agent(int(splits[2]))
+            agent.display_tags()
         else:
             print("Command does not exist\n")
 
@@ -171,7 +177,8 @@ class BlueServer:
         f = open(file_name, 'a')
         f.close()
 
-    def help(self):
+    def help(self,menu="main"):
+      if menu == "main":
         #Displays help menu
         print("Commands: ")
         print("HELP\tDisplay this help menu")
@@ -179,27 +186,28 @@ class BlueServer:
         print("SET <PARAMS>\tSets options for running program. Use SET HELP for more info")
         print("CMD <COMMAND>\tRuns a certain command on all selected targets")
         print("SHOW CONNECTIONS\tShows all connected agents")
+        print("SHOW TARGETS\tShows all currently targeted agents")
         print("KILL <AGENT #>\tDisconnects specified agent")
-        print("SHELL <Agent #>\tOpens an interactive shell on agent using ncat")
-
-    def set_help(self):
-        #Smaller help menu specific to the SET command
+        print("SHELL <Agent #>\tSimulates an interactive shell on specified agent")
+      elif menu == "set":
         print("Usage: SET <ARG>")
         print("SET HELP\tDisplay this help menu")
         print("SET TARGETS <CSV list of target ips/agent #s>\tSets the targets to each target specified in a comma seperated list (Note: Overwrites previous targets)")
-
+      else:
+        raise ValueError("Invalid Menu")
+        
     def accept_connections(self):
         while self.running == True:
             sock,ip = self.sock.accept()
             self.agent_count+=1
             newAgent = Agent(self.agent_count,sock,ip)
-            self.connections.append(newAgent)
             logging.info("Accepted connection from "+newAgent.ip[0]+":"+self.get_timestamp())
             #sends inital messages to inform client if encryption is being used
             if self.encryption == True:
                 newAgent.sock.send("encryption on".encode())
             else:
                 newAgent.sock.send("encryption off".encode())
+            self.connections.append(newAgent)
 
     def ip_to_agent(self,ip):
         for agent in self.connections:
@@ -213,31 +221,31 @@ class BlueServer:
                 return agent
         return None #null return if no agents match
     
-    # def send_heartbeat(self,agent):
-    #     try:
-    #         agent.sock.settimeout(5.0)
-    #         reply = ""
-    #         if self.encryption == True:
-    #             agent.sock.send(self.encrypt("heartbeat".encode())) 
-    #             reply = self.decrypt(agent.sock.recv(10)).decode()
-    #         else:
-    #             agent.sock.send("heartbeat".encode()) 
-    #             reply = agent.sock.recv(10).decode()
-    #         if reply != "ACTIVE":
-    #             logging.warning("Lost connection to " + agent.ip[0]+":"+self.get_timestamp())
-    #             self.connections.remove(agent)
-    #     except socket.timeout:
-    #         logging.warning("Lost connection to " + agent.ip[0]+"(timeout):"+self.get_timestamp())
-    #         print("Agent " + agent.number + " timed out, removing from connections")
-    #         self.connections.remove(agent)
-    #     finally:
-    #         agent.sock.settimeout(30.0)
+    def send_heartbeat(self,agent):
+        try:
+            agent.sock.settimeout(5.0)
+            reply = ""
+            if self.encryption == True:
+                agent.sock.send(self.encrypt("heartbeat".encode())) 
+                reply = self.decrypt(agent.sock.recv(10)).decode()
+            else:
+                agent.sock.send("heartbeat".encode()) 
+                reply = agent.sock.recv(10).decode()
+            if reply != "ACTIVE":
+                logging.warning("Lost connection to " + agent.ip[0]+":"+self.get_timestamp())
+                self.connections.remove(agent)
+        except socket.timeout:
+            logging.warning("Lost connection to " + agent.ip[0]+"(timeout):"+self.get_timestamp())
+            print("Agent " + agent.number + " timed out, removing from connections")
+            self.connections.remove(agent)
+        finally:
+            agent.sock.settimeout(None)
     
-    # def heartbeat_all_conns(self):
-    #     while self.running == True:
-    #         for conn in self.connections:
-    #             self.send_heartbeat(conn)
-    #             time.sleep(60) #pauses for one minute
+    def heartbeat_all_conns(self):
+        while self.running == True:
+            for conn in self.connections:
+                self.send_heartbeat(conn)
+                time.sleep(60) #pauses for one minute
     
     def encrypt(self,data):
         key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)] #repeats key to match length of data
@@ -246,6 +254,33 @@ class BlueServer:
     def decrypt(self,data):
         key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)] # same as encrypt because of xor
         return strxor(data,key.encode())
+    
+    def apply_template(self,template_type):
+        #apply tags to agents based on if they match the IP address format
+        if template_type == "ip":
+            with open("./templates/ip_templates.txt") as template:
+                for line in template:
+                    ip,tag = line.split("=")
+                    ip_segments = ip.split(".")
+                    fits = True
+                    index = 0
+                    for conn in self.connections:
+                        conn_ip_segments = conn.local_ip.split(".")
+                        for segment in ip_segments:
+                            if segment in ["*","x"]:
+                                index+=1
+                                continue
+                            else:
+                                if segment == conn_ip_segments[index]:
+                                    index+=1
+                                    continue
+                                else:
+                                    fits = False
+                                    break
+                        if fits == True:
+                            conn.tags.append(tag)
+        else:
+            print("ERROR: Invalid template type")
 
 def display_banner():
     try:
