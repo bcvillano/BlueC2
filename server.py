@@ -113,6 +113,11 @@ class BlueServer:
         elif splits[0].upper() + " " + splits[1].upper() == "SHOW TAGS":
             agent = self.agentnum_to_agent(int(splits[2]))
             agent.display_tags()
+        elif splits[0].upper() == "TAG":
+            agent = self.agentnum_to_agent(int(splits[1]))
+            tag = splits[2]
+            if tag not in agent.tags:
+                agent.tags.append(tag)
         else:
             print("Command does not exist\n")
 
@@ -187,12 +192,15 @@ class BlueServer:
         print("CMD <COMMAND>\tRuns a certain command on all selected targets")
         print("SHOW CONNECTIONS\tShows all connected agents")
         print("SHOW TARGETS\tShows all currently targeted agents")
+        print("SHOW TAGS <AGENT #>\tShows all tags applied to specified agent")
         print("KILL <AGENT #>\tDisconnects specified agent")
         print("SHELL <Agent #>\tSimulates an interactive shell on specified agent")
+        print("APPLY TEMPLATE IP\tApplies IP based tags to agents as defined in templates/ip_templates.txt")
+        print("TAG <AGENT #> <TAG>\tApply a tag to specified agent")
       elif menu == "set":
         print("Usage: SET <ARG>")
         print("SET HELP\tDisplay this help menu")
-        print("SET TARGETS <CSV list of target ips/agent #s>\tSets the targets to each target specified in a comma seperated list (Note: Overwrites previous targets)")
+        print("SET TARGETS <Comma sepetated list of target ips/agent #s>\tSets the targets to each target specified in a comma seperated list (Note: Overwrites previous targets)")
       else:
         raise ValueError("Invalid Menu")
         
@@ -278,7 +286,8 @@ class BlueServer:
                                     fits = False
                                     break
                         if fits == True:
-                            conn.tags.append(tag)
+                            if tag not in conn.tags:
+                                conn.tags.append(tag)
         else:
             print("ERROR: Invalid template type")
 
