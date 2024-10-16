@@ -3,3 +3,4 @@ subprocess
 time
 string
 pycryptodome
+psutil

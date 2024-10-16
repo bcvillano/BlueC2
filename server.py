@@ -38,7 +38,7 @@ class BlueServer:
 
     def handle_command(self,userin):
         splits = userin.split(" ") #splits userinput on each space
-        if userin.upper() == "QUIT" or userin.upper() == 'Q':
+        if userin.upper() in ["QUIT","EXIT","Q"]:
             validate = input("Confirmation required: are you sure you want to quit? (y/n)\n")
             if validate.upper() in ["YES","Y"]:
                 for conn in self.connections: #Kills all connections before terminating program
@@ -55,17 +55,23 @@ class BlueServer:
                 self.help("set")
             elif splits[1].upper() == "TARGETS":
                 self.targets = []
-                targets = splits[2].split(",")
-                for target in targets:
-                    match = re.match(IP_REGEX,target)
-                    if target in self.targets:
-                        continue
-                    elif match:
-                        self.targets.append(self.ip_to_agent(target))
-                    elif self.agentnum_to_agent(target) != None:
-                        self.targets.append(self.agentnum_to_agent(target))
-                    else:
-                        print(target + " not a found connection")
+                if splits[2].upper() == "TAGGED":
+                    tag = splits[3]
+                    for conn in self.connections:
+                        if tag in conn.tags:
+                            self.targets.append(conn)
+                else:
+                    targets = splits[2].split(",")
+                    for target in targets:
+                        match = re.match(IP_REGEX,target)
+                        if target in self.targets:
+                            continue
+                        elif match:
+                            self.targets.append(self.ip_to_agent(target))
+                        elif self.agentnum_to_agent(target) != None:
+                            self.targets.append(self.agentnum_to_agent(target))
+                        else:
+                            print(target + " not a found connection")
             else:
                 print("Invalid command, use SET HELP to see valid paramaters for SET")
         elif splits[0].upper() == "CMD":
@@ -201,6 +207,7 @@ class BlueServer:
         print("Usage: SET <ARG>")
         print("SET HELP\tDisplay this help menu")
         print("SET TARGETS <Comma sepetated list of target ips/agent #s>\tSets the targets to each target specified in a comma seperated list (Note: Overwrites previous targets)")
+        print("SET TARGETS TAGGED <TAG>\tSet targets to all agents with specified tag")
       else:
         raise ValueError("Invalid Menu")
         
@@ -215,6 +222,10 @@ class BlueServer:
                 newAgent.sock.send("encryption on".encode())
             else:
                 newAgent.sock.send("encryption off".encode())
+            if self.encryption == True:
+                newAgent.local_ip = self.decrypt(newAgent.sock.recv(20)).decode()
+            else:
+                newAgent.local_ip = newAgent.sock.recv(20).decode()
             self.connections.append(newAgent)
 
     def ip_to_agent(self,ip):

@@ -10,7 +10,6 @@ class Agent:
         self.sock = sock #socket
         self.ipaddr = self.ip[0]
         self.tags = []
-        self.local_ip = self.ipaddr
 
     def __str__(self) -> str:
         if self.local_ip == None:
