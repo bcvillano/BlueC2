@@ -91,6 +91,11 @@ class BlueServer:
                     print(str(target),end=",")
                 else:
                     print(str(target))
+        elif splits[0].upper() == "SHOW" and splits[1].upper() == "TAGGED":
+            tag = splits[2]
+            for conn in self.connections:
+                if tag in conn.tags:
+                    print(str(conn))
         elif splits[0].upper() == "KILL":
             agents = splits[1].split(",")
             for a in agents:
@@ -158,8 +163,10 @@ class BlueServer:
             self.targets.remove(agent)
         except BrokenPipeError:
             print(str(agent)+f"\nERROR: Broken pipe error\n")
+            logging.error("Broken pipe error:"+agent+":"+self.get_timestamp())
         except Exception as e:
             print(str(agent)+f"\nERROR: Unknown error\n{str(e)}")
+            logging.error("Unknown error:"+str(e)+":"+self.get_timestamp())
 
     def start(self):
         logging.info("BlueC2 server starting:"+self.get_timestamp())
@@ -199,6 +206,7 @@ class BlueServer:
         print("SHOW CONNECTIONS\tShows all connected agents")
         print("SHOW TARGETS\tShows all currently targeted agents")
         print("SHOW TAGS <AGENT #>\tShows all tags applied to specified agent")
+        print("SHOW TAGGED <TAG>\tShows all agents with specified tag")
         print("KILL <AGENT #>\tDisconnects specified agent")
         print("SHELL <Agent #>\tSimulates an interactive shell on specified agent")
         print("APPLY TEMPLATE IP\tApplies IP based tags to agents as defined in templates/ip_templates.txt")
@@ -213,24 +221,27 @@ class BlueServer:
         
     def accept_connections(self):
         while self.running == True:
-            sock,ip = self.sock.accept()
-            self.agent_count+=1
-            newAgent = Agent(self.agent_count,sock,ip)
-            logging.info("Accepted connection from "+newAgent.ip[0]+":"+self.get_timestamp())
-            #sends inital messages to inform client if encryption is being used
-            if self.encryption == True:
-                newAgent.sock.send("encryption on".encode())
-            else:
-                newAgent.sock.send("encryption off".encode())
-            if self.encryption == True:
-                local_ip = self.decrypt(newAgent.sock.recv(20)).decode()
-                if local_ip not in [""," ","Unsupported OS"]:
-                    newAgent.local_ip = local_ip
-            else:
-                local_ip = newAgent.sock.recv(20).decode()
-                if local_ip not in [""," ","Unsupported OS"]:
-                    newAgent.local_ip = local_ip
-            self.connections.append(newAgent)
+            try:
+                sock,ip = self.sock.accept()
+                self.agent_count+=1
+                newAgent = Agent(self.agent_count,sock,ip)
+                logging.info("Accepted connection from "+newAgent.ip[0]+":"+self.get_timestamp())
+                #sends inital messages to inform client if encryption is being used
+                if self.encryption == True:
+                    newAgent.sock.send("encryption on".encode())
+                else:
+                    newAgent.sock.send("encryption off".encode())
+                if self.encryption == True:
+                    local_ip = self.decrypt(newAgent.sock.recv(20)).decode()
+                    if local_ip not in [""," ","Unsupported OS"]:
+                        newAgent.local_ip = local_ip
+                else:
+                    local_ip = newAgent.sock.recv(20).decode()
+                    if local_ip not in [""," ","Unsupported OS"]:
+                        newAgent.local_ip = local_ip
+                self.connections.append(newAgent)
+            except Exception as e:
+                logging.error("Error accepting connection:"+str(e)+":"+self.get_timestamp())
 
     def ip_to_agent(self,ip):
         for agent in self.connections:
@@ -261,6 +272,9 @@ class BlueServer:
             logging.warning("Lost connection to " + agent.ip[0]+"(timeout):"+self.get_timestamp())
             print("Agent " + agent.number + " timed out, removing from connections")
             self.connections.remove(agent)
+        except Exception as e:
+            logging.error("Error sending heartbeat:"+str(e)+":"+self.get_timestamp())
+            self.connections.remove(agent)
         finally:
             agent.sock.settimeout(None)
     
@@ -269,6 +283,7 @@ class BlueServer:
             for conn in self.connections:
                 self.send_heartbeat(conn)
                 time.sleep(60) #pauses for one minute
+                
     
     def encrypt(self,data):
         key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)] #repeats key to match length of data
@@ -322,6 +337,9 @@ def main():
     except KeyboardInterrupt:
         server.logger.critical("KEYBOARD INTERRUPT:"+server.get_timestamp())
         server.stop()
-    
+    except Exception as e:
+        server.logger.critical("UNHANDLED EXCEPTION:\t"+ str(e) + "\t" + server.get_timestamp())
+        print("Unhandled Exception:",e)
+        
 if __name__ == "__main__":
     main()
