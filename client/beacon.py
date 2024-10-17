@@ -46,6 +46,7 @@ class Beacon:
                      if self.debugging == True:
                         print(error_msg)
                      self.sock.send(self.encrypt(error_msg.encode()))
+                     self.sock.send(self.encrypt("END".encode()))
 
    def start(self):
       self.running = True
@@ -57,7 +58,6 @@ class Beacon:
                 time.sleep(10)
    
    def run(self):
-
       try:
          while self.running:
                self.sock.settimeout(5)
