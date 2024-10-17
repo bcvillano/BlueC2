@@ -258,6 +258,38 @@ class BlueServer:
     def decrypt(self,data):
         key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)] # same as encrypt because of xor
         return strxor(data,key.encode())
+<<<<<<< Updated upstream
+=======
+    
+    def apply_template(self,template_type):
+        #apply tags to agents based on if they match the IP address format
+        if template_type == "ip":
+            with open("./templates/ip_templates.txt") as template:
+                for line in template:
+                    ip,tags = line.split("=")
+                    ip_segments = ip.split(".")
+                    fits = True
+                    index = 0
+                    for conn in self.connections:
+                        conn_ip_segments = conn.local_ip.split(".")
+                        for segment in ip_segments:
+                            if segment in ["*","x"]:
+                                index+=1
+                                continue
+                            else:
+                                if segment == conn_ip_segments[index]:
+                                    index+=1
+                                    continue
+                                else:
+                                    fits = False
+                                    break
+                        if fits == True:
+                            for tag in tags.split(","):
+                                if tag not in conn.tags:
+                                    conn.tags.append(tag)
+        else:
+            print("ERROR: Invalid template type")
+>>>>>>> Stashed changes
 
 def display_banner():
     try:

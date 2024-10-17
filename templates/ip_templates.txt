@@ -1,0 +1,8 @@
+10.x.1.10=Ubuntu1,Ubuntu,Linux,ICMP,SSH
+10.x.1.40=Ubuntu2,Ubuntu,Linux,ICMP,SSH
+10.x.1.30=WebApp,Ubuntu,Linux,HTTP,MySQL
+10.x.1.70=Windows1,Windows,Win10,WinRM,ICMP
+10.x.1.80=Windows2,Windows,Win10,WinRM,ICMP
+10.x.2.2=BackupServer,Ubuntu,Linux,HTTP
+10.x.2.4=UbuntuFTP,Ubuntu,Linux,FTP
+10.x.2.10=DevServer,Ubuntu,Linux,ICMP,SSH
