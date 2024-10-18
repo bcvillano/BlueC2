@@ -292,7 +292,7 @@ class BlueServer:
         if template_type == "ip":
             with open("./templates/ip_templates.txt") as template:
                 for line in template:
-                    ip,tag = line.split("=")
+                    ip,tags = line.split("=")
                     ip_segments = ip.split(".")
                     fits = True
                     index = 0
@@ -310,8 +310,9 @@ class BlueServer:
                                     fits = False
                                     break
                         if fits == True:
-                            if tag not in conn.tags:
-                                conn.tags.append(tag)
+                            for tag in tags.split(","):
+                                if tag not in conn.tags:
+                                    conn.tags.append(tag)
         else:
             print("ERROR: Invalid template type")
 
