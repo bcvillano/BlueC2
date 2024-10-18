@@ -2,4 +2,5 @@ socket
 subprocess
 time
 string
+platform
 pycryptodome
