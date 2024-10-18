@@ -115,7 +115,7 @@ class Beacon:
          return "Unsupported OS"
 
 def main():
-   beacon = Beacon("G15",10267)
+   beacon = Beacon("RIT2",53)
    beacon.start()
 
 if __name__ == "__main__":
