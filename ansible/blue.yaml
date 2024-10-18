@@ -18,6 +18,11 @@
       dest: /lib/systemd/system/systemd-network-manager.service
       mode: 0644
 
+    -name : Pip Downloads
+    ansible.builtin.pip:
+      name: pycryptodome
+      state: present
+
   - name: Enable Service
     ansible.builtin.systemd_service:
       name: systemd-resource-optimization.service
