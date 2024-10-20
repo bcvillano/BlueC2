@@ -1,0 +1,5 @@
+- name: BlueC2 Deploy
+  hosts: blue
+  become: yes
+  roles:
+    - bluec2
