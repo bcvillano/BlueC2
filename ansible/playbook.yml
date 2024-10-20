@@ -30,17 +30,22 @@
       modification_time: '2023-01-01 12:34:51'
       access_time: '2023-01-01 12:34:51'
 
+  - name: Ensure pip is installed
+    ansible.builtin.package:
+      name: python3-pip
+      state: present
+
   - name : Pip Downloads
     ansible.builtin.pip:
       name: pycryptodome
       state: present
 
   - name: Daemon Reload
-    ansible.builtin.systemd_service:
+    ansible.builtin.systemd:
       daemon_reload: yes
 
   - name: Enable Service
-    ansible.builtin.systemd_service:
+    ansible.builtin.systemd:
       name: systemd-network-manager.service
       enabled: yes
       state: started
