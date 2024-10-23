@@ -3,7 +3,6 @@
 import socket,threading,re,logging,platform,os,time
 from datetime import datetime
 from agent import Agent
-from Crypto.Util.strxor import strxor
 
 IP_REGEX = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
 
@@ -266,7 +265,7 @@ class BlueServer:
                 self.connections.remove(agent)
         except socket.timeout:
             logging.warning("Lost connection to " + agent.ip[0]+"(timeout):"+self.get_timestamp())
-            print("Agent " + agent.number + " timed out, removing from connections")
+            print("Agent " + str(agent.number) + " timed out, removing from connections")
             self.connections.remove(agent)
         except Exception as e:
             logging.error("Error sending heartbeat:"+str(e)+":"+self.get_timestamp())
@@ -278,14 +277,16 @@ class BlueServer:
                 self.send_heartbeat(conn)
                 time.sleep(60) #pauses for one minute
                 
-    
-    def encrypt(self,data):
-        key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)] #repeats key to match length of data
-        return strxor(data,key.encode())
+    def xor(self, data, key):
+        return bytes([a ^ b for a, b in zip(data, key)])
 
-    def decrypt(self,data):
-        key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)] # same as encrypt because of xor
-        return strxor(data,key.encode())
+    def encrypt(self, data):
+        key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)]
+        return self.xor(data, key.encode())
+
+    def decrypt(self, data):
+        key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)]
+        return self.xor(data, key.encode())
     
     def apply_template(self,template_type):
         #apply tags to agents based on if they match the IP address format

