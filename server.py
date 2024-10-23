@@ -265,7 +265,7 @@ class BlueServer:
                 self.connections.remove(agent)
         except socket.timeout:
             logging.warning("Lost connection to " + agent.ip[0]+"(timeout):"+self.get_timestamp())
-            print("Agent " + agent.number + " timed out, removing from connections")
+            print("Agent " + str(agent.number) + " timed out, removing from connections")
             self.connections.remove(agent)
         except Exception as e:
             logging.error("Error sending heartbeat:"+str(e)+":"+self.get_timestamp())
