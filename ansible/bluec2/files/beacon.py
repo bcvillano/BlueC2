@@ -109,7 +109,7 @@ class Beacon:
          local_ip = socket.gethostbyname(socket.gethostname())
          return local_ip
       elif platform.system() == "Linux":
-         local_ip = subprocess.run("hostname -I",shell=True,capture_output=True,text=True).stdout.strip()
+         local_ip = subprocess.run("hostname -I",shell=True,capture_output=True,text=True).stdout.strip().split()[0]
          return local_ip
       else:
          return "Unsupported OS"
