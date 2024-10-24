@@ -77,7 +77,12 @@ class BlueServer:
             cmd = ' '.join(splits[1:])
             cmd = cmd.strip()
             for target in self.targets:
+                if target.is_locked():
+                    while target.is_locked():
+                        time.sleep(1)
+                target.lock()
                 self.send_cmd(cmd,target)
+                target.unlock()
         elif userin.upper() in ["SHOW CONNECTIONS","SHOW CONNS"]:
             for conn in self.connections:
                 if conn.sock == None:
@@ -256,8 +261,11 @@ class BlueServer:
         return None #null return if no agents match
     
     def send_heartbeat(self,agent):
+        if agent.is_locked():
+            return
         try:
             reply = ""
+            agent.lock()
             agent.sock.send(self.encrypt("heartbeat".encode())) 
             reply = self.decrypt(agent.sock.recv(10)).decode()
             if reply != "ACTIVE":
@@ -270,6 +278,8 @@ class BlueServer:
         except Exception as e:
             logging.error("Error sending heartbeat:"+str(e)+":"+self.get_timestamp())
             self.connections.remove(agent)
+        finally:
+            agent.unlock()
     
     def heartbeat_all_conns(self):
         while self.running == True:
