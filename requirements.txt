@@ -6,4 +6,3 @@ platform
 os
 time
 datetime
-pycryptodome

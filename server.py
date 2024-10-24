@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-import socket,threading,re,logging,platform,os,time
-from datetime import datetime
+import socket,threading,re,logging,platform,time
+import bluec2utils #Utility methods separated for better organization
 from agent import Agent
 
 IP_REGEX = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
@@ -27,10 +27,10 @@ class BlueServer:
         logfilename = None
         if platform.system() == 'Linux':
             logfilename = "/var/log/bluec2.log"
-            self.create_logfile(logfilename)
+            bluec2utils.create_logfile(logfilename)
         elif platform.system() == 'Windows':
             logfilename = "C:/Code/BlueC2/bluec2.log" #Fix this later to create a valid path
-            self.create_logfile(logfilename)
+            bluec2utils.create_logfile(logfilename)
         else:
             raise ValueError("Unrecognized OS:",platform.system())
         logging.basicConfig(filename=logfilename, encoding='utf-8', level=logging.DEBUG)
@@ -47,11 +47,11 @@ class BlueServer:
             else:
                 print("Cancelling QUIT command")
         elif userin.upper() == "HELP" or userin == "?":
-            self.help()
+            bluec2utils.help()
         elif splits[0].upper() == "SET":
             #Handles setting information
             if splits[1].upper() == "HELP":
-                self.help("set")
+                bluec2utils.help("set")
             elif splits[1].upper() == "TARGETS":
                 self.targets = []
                 if splits[2].upper() == "TAGGED":
@@ -153,37 +153,34 @@ class BlueServer:
                         result += reply
             except socket.timeout:
                     print(str(agent) + " timed out")
-                    logging.error("Socket timeout:" + str(agent) + ":" + self.get_timestamp())
+                    logging.error("Socket timeout:" + str(agent) + ":" + bluec2utils.get_timestamp())
             print(str(agent) + ":\n" + result)
         except UnicodeDecodeError:
             print(str(agent) + "\nERROR: Unicode Decode Error")
-            logging.error("Unicode decode error:" + str(agent) + ":" + self.get_timestamp())
+            logging.error("Unicode decode error:" + str(agent) + ":" + bluec2utils.get_timestamp())
         except ConnectionError:
             print(str(agent) + "\nERROR: Connection Error\n")
-            logging.error("Connection error:" + str(agent) + ":" + self.get_timestamp())
+            logging.error("Connection error:" + str(agent) + ":" + bluec2utils.get_timestamp())
             self.disconnect_agent(agent)
         except BrokenPipeError:
             print(str(agent) + "\nERROR: Broken pipe error\n")
-            logging.error("Broken pipe error:" + str(agent) + ":" + self.get_timestamp())
+            logging.error("Broken pipe error:" + str(agent) + ":" + bluec2utils.get_timestamp())
         except Exception as e:
             print(str(agent) + "\nERROR: Unknown error\n" + str(e))
-            logging.error("Unknown error:" + str(e) + ":" + self.get_timestamp())
+            logging.error("Unknown error:" + str(e) + ":" + bluec2utils.get_timestamp())
 
     def start(self):
-        logging.info("BlueC2 server starting:"+self.get_timestamp())
+        logging.info("BlueC2 server starting:"+bluec2utils.get_timestamp())
         self.running = True
         listener = threading.Thread(target=self.accept_connections, daemon=True)
         listener.start()
         heartbeat = threading.Thread(target=self.heartbeat_all_conns,daemon=True)
         heartbeat.start()
-        logging.info("Startup process complete:"+self.get_timestamp())
+        logging.info("Startup process complete:"+bluec2utils.get_timestamp())
         #Command handler
         while self.running == True:
             userin = input("> ")
             self.handle_command(userin)
-
-    def get_timestamp(self):
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
     def stop(self):
         self.running = False
@@ -192,38 +189,7 @@ class BlueServer:
                 self.disconnect_agent(conn)
             except:
                 continue
-        logging.info("BlueC2 Server Shutdown:"+self.get_timestamp())
-
-    def create_logfile(self,logfilename):
-        directory = os.path.dirname(logfilename)
-        file_name = os.path.basename(logfilename)
-        os.makedirs(directory, exist_ok=True)
-        f = open(file_name, 'a')
-        f.close()
-
-    def help(self,menu="main"):
-      if menu == "main":
-        #Displays help menu
-        print("Commands: ")
-        print("HELP\tDisplay this help menu")
-        print("QUIT\tExit and shutdown server")
-        print("SET <PARAMS>\tSets options for running program. Use SET HELP for more info")
-        print("CMD <COMMAND>\tRuns a certain command on all selected targets")
-        print("SHOW CONNECTIONS\tShows all connected agents")
-        print("SHOW TARGETS\tShows all currently targeted agents")
-        print("SHOW TAGS <AGENT #>\tShows all tags applied to specified agent")
-        print("SHOW TAGGED <TAG>\tShows all agents with specified tag")
-        print("KILL <AGENT #>\tDisconnects specified agent")
-        print("SHELL <Agent #>\tSimulates an interactive shell on specified agent")
-        print("APPLY TEMPLATE IP\tApplies IP based tags to agents as defined in templates/ip_templates.txt")
-        print("TAG <AGENT #> <TAG>\tApply a tag to specified agent")
-      elif menu == "set":
-        print("Usage: SET <ARG>")
-        print("SET HELP\tDisplay this help menu")
-        print("SET TARGETS <Comma sepetated list of target ips/agent #s>\tSets the targets to each target specified in a comma seperated list (Note: Overwrites previous targets)")
-        print("SET TARGETS TAGGED <TAG>\tSet targets to all agents with specified tag")
-      else:
-        raise ValueError("Invalid Menu")
+        logging.info("BlueC2 Server Shutdown:"+bluec2utils.get_timestamp())
         
     def accept_connections(self):
         while self.running == True:
@@ -231,7 +197,7 @@ class BlueServer:
                 sock,ip = self.sock.accept()
                 self.agent_count+=1
                 newAgent = Agent(self.agent_count,sock,ip)
-                logging.info("Accepted connection from "+newAgent.ip[0]+":"+self.get_timestamp())
+                logging.info("Accepted connection from "+newAgent.ip[0]+":"+bluec2utils.get_timestamp())
                 local_ip = self.decrypt(newAgent.sock.recv(20)).decode()
                 if local_ip not in [""," ","Unsupported OS"]:
                     newAgent.local_ip = local_ip
@@ -239,7 +205,7 @@ class BlueServer:
             except socket.timeout:
                 continue
             except Exception as e:
-                logging.error("Error accepting connection:"+str(e)+":"+self.get_timestamp())
+                logging.error("Error accepting connection:"+str(e)+":"+bluec2utils.get_timestamp())
 
     def ip_to_agent(self,ip):
         for agent in self.connections:
@@ -265,12 +231,15 @@ class BlueServer:
             agent.sock.send(self.encrypt("heartbeat".encode())) 
             reply = self.decrypt(agent.sock.recv(10)).decode()
             if reply != "ACTIVE":
-                logging.warning("Lost connection to " + agent.ip[0]+":"+self.get_timestamp())
-                self.connections.remove(agent)
+                agent.no_response_count+=1
+                logging.warning("Agent "+str(agent.number)+" did not respond:"+bluec2utils.get_timestamp())
+            else:
+                agent.no_response_count = 0
         except socket.timeout:
             agent.no_response_count+=1
+            logging.warning("Agent "+str(agent.number)+" did not respond:"+bluec2utils.get_timestamp())
         except Exception as e:
-            logging.error("Error sending heartbeat:"+str(e)+":"+self.get_timestamp())
+            logging.error("Error sending heartbeat:"+str(e)+":"+bluec2utils.get_timestamp())
             agent.no_response_count+=1
         finally:
             agent.unlock()
@@ -285,7 +254,7 @@ class BlueServer:
                 time.sleep(60) #pauses for one minute
 
     def disconnect_agent(self,agent):
-        logging.warning("Lost connection to " + agent.ip[0]+"(timeout):"+self.get_timestamp())
+        logging.warning("Lost connection to " + agent.ip[0]+"(timeout):"+bluec2utils.get_timestamp())
         print("Agent " + str(agent.number) + " timed out, removing from connections")
         self.connections.remove(agent)
         try:
@@ -351,10 +320,10 @@ def main():
         display_banner()
         server.start()
     except KeyboardInterrupt:
-        server.logger.critical("KEYBOARD INTERRUPT:"+server.get_timestamp())
+        server.logger.critical("KEYBOARD INTERRUPT:"+bluec2utils.get_timestamp())
         server.stop()
     except Exception as e:
-        server.logger.critical("UNHANDLED EXCEPTION:\t"+ str(e) + "\t" + server.get_timestamp())
+        server.logger.critical("UNHANDLED EXCEPTION:\t"+ str(e) + "\t" + bluec2utils.get_timestamp())
         print("Unhandled Exception:",e)
         
 if __name__ == "__main__":
