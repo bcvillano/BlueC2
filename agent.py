@@ -2,7 +2,7 @@ class Agent:
 
 #Contains state and behavior for server-side handling of clients
 
-    __slots__ = ["sock","ip","number","ipaddr","pubkey","local_ip","tags","socklock"]
+    __slots__ = ["sock","ip","number","ipaddr","pubkey","local_ip","tags","socklock","no_response_count"]
 
     def __init__(self,number,sock,ip):
         self.number = number
@@ -12,6 +12,7 @@ class Agent:
         self.tags = []
         self.local_ip = None
         self.socklock = False
+        self.no_response_count = 0
 
     def __str__(self) -> str:
         if self.local_ip == None:

