@@ -247,6 +247,7 @@ class BlueServer:
         finally:
             agent.unlock()
             if agent.no_response_count > 3:
+                logging.warning("Agent "+str(agent.number)+" lost connection (timeout):"+bluec2utils.get_timestamp())
                 self.disconnect_agent(agent)
                 agent.no_response_count = 0
     
@@ -257,8 +258,8 @@ class BlueServer:
                 time.sleep(60) #pauses for one minute
 
     def disconnect_agent(self,agent):
-        logging.warning("Lost connection to " + agent.ip[0]+"(timeout):"+bluec2utils.get_timestamp())
-        print("Agent " + str(agent.number) + " timed out, removing from connections")
+        logging.warning("Lost connection to " + agent.ip[0]+ bluec2utils.get_timestamp())
+        print("Agent " + str(agent.number) + "removed from connections")
         self.connections.remove(agent)
         try:
             agent.sock.shutdown(socket.SHUT_RDWR)
@@ -285,6 +286,7 @@ class BlueServer:
         if template_type == "ip":
             with open("./templates/ip_templates.txt") as template:
                 for line in template:
+                    line = line.strip()
                     ip,tags = line.split("=")
                     ip_segments = ip.split(".")
                     fits = True
